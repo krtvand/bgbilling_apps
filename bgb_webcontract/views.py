@@ -3,8 +3,11 @@ from django.http import HttpResponse, HttpResponseRedirect
 from django.core.urlresolvers import reverse
 from django.views import generic
 from django.utils import timezone
+from django.forms import inlineformset_factory
+from django.forms import modelform_factory
 
 from .models import Choice, Question, Request, Contract, Department
+from .forms import RequestForm
 
 class IndexView(generic.ListView):
     template_name = 'bgb_webcontract/index.html'
@@ -55,15 +58,35 @@ def request_exists_view(request, request_id):
     try:
         it_manager_request = Request.objects.get(pk=request_id)
     except (KeyError):
-        return render(request, 'bgb_webcontract/request_exists.html.html',
+        return render(request, 'bgb_webcontract/request_exists.html',
                       {'request_id': request_id,
                        'error_message': 'This request id does nor exist'})
     else:
         contarct_list = it_manager_request.contract_set.all()
-        return render(request, 'bgb_webcontract/request_exists.html.html',
+        return render(request, 'bgb_webcontract/request_exists.html',
                       {'request_id': request_id,
                        'it_manager_fullname': it_manager_request.it_manager_fullname,
                        'it_manager_position': it_manager_request.it_manager_position,
                        'it_manager_email': it_manager_request.it_manager_email,
                        'created_date': it_manager_request.created_date,
                        'contract_list': contarct_list})
+
+def request_view(request):
+
+    ContractFormset = inlineformset_factory(Request, Contract, fields=('full_name', 'position',), extra=1)
+    if request.method == 'POST':
+        header_form = RequestForm(request.POST)
+        formset = ContractFormset(request.POST)
+        if formset.is_valid() and header_form.is_valid():
+            it_manager_request = header_form.save()
+            contracts = formset.save(commit=False)
+            for contract in contracts:
+                it_manager_request.contract_set.add(contract, bulk=False)
+            return HttpResponseRedirect(reverse('bgb_webcontract:thanks'))
+    else:
+        formset = ContractFormset()
+        header_form = RequestForm()
+    return render(request, 'bgb_webcontract/request.html', {'header_form' : header_form, 'formset': formset})
+
+def thanks(request):
+    return HttpResponse("Thanks")

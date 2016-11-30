@@ -18,16 +18,18 @@ class Request(models.Model):
     created_date = models.DateTimeField(auto_now=True)
     accepted = models.BooleanField(default=False)
     rejection_reason = models.CharField(max_length=200, blank=True)
+    department_id = models.ForeignKey(Department, on_delete=models.CASCADE)
 
     def __str__(self):
         return ' '.join([self.it_manager_fullname, self.it_manager_position])
+
+
 
 class Contract(models.Model):
     full_name = models.CharField(max_length=200)
     position = models.CharField(max_length=200)
     login = models.CharField(max_length=10, blank=True)
     password = models.CharField(max_length=10, blank=True)
-    department_id = models.ForeignKey(Department, on_delete=models.CASCADE)
     request_id = models.ForeignKey(Request, on_delete=models.CASCADE)
 
     def __str__(self):

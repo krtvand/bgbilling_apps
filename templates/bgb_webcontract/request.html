@@ -5,10 +5,14 @@
     <title>Create Request</title>
 </head>
 <body>
-    <form action="/request/" method="post">
+    <form action="{% url 'bgb_webcontract:request' %}" method="post">
     {% csrf_token %}
-    {{ form }}
+    {{ header_form }}
+    {{ department_form }}
+    <table>
+    {{ formset.as_table }}
+    </table>
     <input type="submit" value="OK">
-</form>
+    </form>
 </body>
 </html>

@@ -1,6 +1,10 @@
 from django import forms
+from django.forms import ModelForm
 
-class NameForm(forms.Form):
-    full_name = forms.CharField(label='Full name', max_length=200)
+from .models import Request, Department
 
-#test
+class RequestForm(ModelForm):
+    class Meta:
+        model = Request
+        fields = ['it_manager_fullname', 'it_manager_position', 'it_manager_email', 'department_id']
+
