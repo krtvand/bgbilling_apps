@@ -1,4 +1,6 @@
 import datetime
+import string
+from random import choice
 
 from django.db import models
 from django.utils import timezone
@@ -6,34 +8,54 @@ from django.utils import timezone
 
 class Department(models.Model):
     id = models.IntegerField(primary_key=True)
-    name = models.CharField(max_length=200)
+    name = models.CharField(max_length=200, verbose_name='Факультет/Подразделение')
 
     def __str__(self):
         return self.name
 
 class Request(models.Model):
-    it_manager_fullname = models.CharField(max_length=200)
-    it_manager_email = models.EmailField()
-    it_manager_position = models.CharField(max_length=200)
+    it_manager_fullname = models.CharField(max_length=200, verbose_name='ФИО заявителя полностью')
+    it_manager_email = models.EmailField(verbose_name='Email заявителя')
+    it_manager_position = models.CharField(max_length=200, verbose_name='Должность заявителя')
     created_date = models.DateTimeField(auto_now=True)
     accepted = models.BooleanField(default=False)
     rejection_reason = models.CharField(max_length=200, blank=True)
-    department_id = models.ForeignKey(Department, on_delete=models.CASCADE)
+    department_id = models.ForeignKey(Department, on_delete=models.CASCADE,
+                                      verbose_name='Факультет/Подразделение')
 
     def __str__(self):
-        return ' '.join([self.it_manager_fullname, self.it_manager_position])
+        return ' '.join([str(self.department_id), self.it_manager_fullname,])
 
 
 
 class Contract(models.Model):
-    full_name = models.CharField(max_length=200)
-    position = models.CharField(max_length=200)
-    login = models.CharField(max_length=10, blank=True)
+    full_name = models.CharField(max_length=200, verbose_name='ФИО без сокращений')
+    position = models.CharField(max_length=200, verbose_name='Должность')
+    login = models.CharField(max_length=10, blank=True, null=True)
     password = models.CharField(max_length=10, blank=True)
     request_id = models.ForeignKey(Request, on_delete=models.CASCADE)
 
     def __str__(self):
         return self.full_name
+
+    def create_login(self):
+        siblings = Contract.objects.filter(request_id__department_id=self.request_id.department_id, login__isnull=False)
+        login_list = []
+        if siblings:
+            for c in siblings:
+                login_list.append(int(c.login))
+                self.login = str(sorted(login_list)[-1] + 1)
+        else:
+            d_id = self.request_id.department_id_id
+            self.login = str(d_id) + '0001'
+        self.save()
+        return self.login
+
+    def create_password(self):
+        CHARS = string.ascii_lowercase + string.digits
+        LENGTH = 6
+        self.password = ''.join(choice(CHARS) for _ in range(LENGTH))
+        self.save()
 
 class Question(models.Model):
     question_text = models.CharField(max_length=200)
@@ -54,4 +76,3 @@ class Choice(models.Model):
 
     def __str__(self):
         return self.choice_text
-

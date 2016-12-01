@@ -4,7 +4,7 @@ from django.core.urlresolvers import reverse
 from django.views import generic
 from django.utils import timezone
 from django.forms import inlineformset_factory
-from django.forms import modelform_factory
+from django.forms import modelformset_factory
 
 from .models import Choice, Question, Request, Contract, Department
 from .forms import RequestForm
@@ -72,21 +72,22 @@ def request_exists_view(request, request_id):
                        'contract_list': contarct_list})
 
 def request_view(request):
-
-    ContractFormset = inlineformset_factory(Request, Contract, fields=('full_name', 'position',), extra=1)
+    ContractFormset = modelformset_factory(Contract, fields=('full_name', 'position'))
     if request.method == 'POST':
         header_form = RequestForm(request.POST)
-        formset = ContractFormset(request.POST)
-        if formset.is_valid() and header_form.is_valid():
+        contract_formset = ContractFormset(request.POST)
+        if contract_formset.is_valid() and header_form.is_valid():
             it_manager_request = header_form.save()
-            contracts = formset.save(commit=False)
+            contracts = contract_formset.save(commit=False)
             for contract in contracts:
                 it_manager_request.contract_set.add(contract, bulk=False)
+                contract.create_login()
+                contract.create_password()
             return HttpResponseRedirect(reverse('bgb_webcontract:thanks'))
     else:
-        formset = ContractFormset()
+        contract_formset = ContractFormset(queryset=Contract.objects.none())
         header_form = RequestForm()
-    return render(request, 'bgb_webcontract/request.html', {'header_form' : header_form, 'formset': formset})
+    return render(request, 'bgb_webcontract/request.html', {'header_form' : header_form, 'contract_formset': contract_formset})
 
 def thanks(request):
     return HttpResponse("Thanks")
