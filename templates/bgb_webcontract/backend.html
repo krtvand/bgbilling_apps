@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>BGB Webcontract backend</title>
+</head>
+<body>
+    <div class="new_requests">
+    <p>Новые заявки:</p>
+        {% if new_request_list %}
+            <ul>
+            {% for request in new_request_list %}
+                <li><a href="{% url 'bgb_webcontract:request_detail_backend' request.id %}">{{ request}}</a></li>
+            {% endfor %}
+            </ul>
+        {% else %}
+            <ul>
+                <li>Нет новых заявок</li>
+            </ul>
+        {% endif %}
+    </div>
+    <div class="latest_requests">
+    <p>Последние обработанные заявки </p>
+        {% if latest_request_list %}
+            <ul>
+            {% for request in latest_request_list %}
+                <li><a href="{% url 'bgb_webcontract:request_detail_backend' request.id %}">{{ request}}</a></li>
+            {% endfor %}
+            </ul>
+        {% else %}
+            <ul>
+                <li>Нет доступных заявок</li>
+            </ul>
+        {% endif %}
+    </div>
+
+</body>
+</html>

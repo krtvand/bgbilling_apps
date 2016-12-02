@@ -7,7 +7,7 @@
 <body>
     <form action="{% url 'bgb_webcontract:request' %}" method="post">
     {% csrf_token %}
-    {{ header_form }}
+    {{ request_form }}
     {{ department_form }}
     <table>
     {{ contract_formset.as_table }}

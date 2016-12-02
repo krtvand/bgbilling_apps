@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Request {{request.id}}</title>
+</head>
+<body>
+    <form action="{% url 'bgb_webcontract:request_detail' request.id %}" method="post">
+        {% csrf_token %}
+        {{ request_form }}
+        {{ department_form }}
+        <table>
+            {{ contract_formset.as_table }}
+        </table>
+        <input type="submit" name="save" value="Сохранить изменения">
+    </form>
+</body>
+</html>
