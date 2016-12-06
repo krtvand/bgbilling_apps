@@ -107,8 +107,7 @@ def request_detail_view(request, request_id):
     RequestForm = modelform_factory(Request, fields=('it_manager_fullname',
                                                      'it_manager_position',
                                                      'it_manager_email',
-                                                     'department_id', 'accepted',
-                                                     'rejection_reason'))
+                                                     'department_id'))
     if request.method == 'POST':
         request_form = RequestForm(request.POST, instance=req)
         contract_formset = ContractInlineFormset(request.POST, instance=req)
@@ -129,7 +128,7 @@ def request_detail_backend_view(request, request_id):
     RequestForm = modelform_factory(Request, fields=('it_manager_fullname',
                                                      'it_manager_position',
                                                      'it_manager_email',
-                                                     'department_id', 'accepted',
+                                                     'department_id',
                                                      'rejection_reason'))
     if request.method == 'POST':
         request_form = RequestForm(request.POST, instance=req)
@@ -137,8 +136,10 @@ def request_detail_backend_view(request, request_id):
         if contract_formset.is_valid() and request_form.is_valid():
             if 'save_to_billing' in request.POST:
                 req.accepted = True
+                req.rejection_reason
                 request_form.save()
                 contract_formset.save()
+                req.create_csv()
                 return HttpResponse('Data was saved in BGBiling')
             elif 'save' in request.POST:
                 contract_formset.save()

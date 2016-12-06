@@ -1,5 +1,7 @@
 import datetime
 import string
+import os
+import csv
 from random import choice
 
 from django.db import models
@@ -19,12 +21,34 @@ class Request(models.Model):
     it_manager_position = models.CharField(max_length=200, verbose_name='Должность заявителя')
     created_date = models.DateTimeField(auto_now=True)
     accepted = models.BooleanField(default=False)
-    rejection_reason = models.CharField(max_length=200, blank=True)
+    rejection_reason = models.CharField(max_length=200, blank=True, default='Заявка не обработана')
     department_id = models.ForeignKey(Department, on_delete=models.CASCADE,
                                       verbose_name='Факультет/Подразделение')
 
+    def create_csv(self):
+        if self.it_manager_email:
+            file_name = self.it_manager_email + '.csv'
+        else:
+            raise Exception('Email is not defined')
+        directory = os.getcwd() + '\\bgb_webcontract\generated_files\\'
+        if not os.path.exists(directory):
+            raise Exception('Directory is not exist')
+        else:
+            with open(directory + file_name, 'w') as f:
+                wr = csv.writer(f, delimiter=';')
+                header = ['ФИО', 'Должность',
+                          'Логин', 'Пароль']
+                wr.writerow(header)
+
+                for contract in self.contract_set.all():
+                    row = ['' for x in range(len(header))]
+                    row[0] = contract.full_name
+                    wr.writerow(row)
+
+
     def __str__(self):
         return ' '.join([str(self.department_id), self.it_manager_fullname,])
+
 
 
 

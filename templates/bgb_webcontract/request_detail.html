@@ -8,6 +8,12 @@
     <form action="{% url 'bgb_webcontract:request_detail' request.id %}" method="post">
         {% csrf_token %}
         {{ request_form }}
+        <div>Статус заявки: </div>
+        {% if not request.accepted %}
+            {{ request.rejection_reason }}
+        {% else %}
+            Заявка обработана. Список логинов и паролей отправлен на адрес {{ request.it_manager_email }}
+        {% endif %}
         {{ department_form }}
         <table>
             {{ contract_formset.as_table }}
