@@ -7,11 +7,12 @@
 <body>
     <form action="{% url 'bgb_webcontract:request_detail' request.id %}" method="post">
         {% csrf_token %}
-        {{ request_form }}
+       <p> {{ request_form.it_manager_fullname.as_p }}</p>
+         {{ request_form.it_manager_position.as_p}}
         {{ department_form }}
-        <table>
-            {{ contract_formset.as_table }}
-        </table>
+        
+           <!-- {{ contract_formset}} -->
+       
         <input type="submit" name="save" value="Сохранить изменения">
     </form>
 </body>
