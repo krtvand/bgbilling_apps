@@ -7,6 +7,7 @@
 <body>
     <div id="topmenu"> {% block topmenu %}
         <a href="{% url 'bgb_webcontract:backend' %}">Бэкенд</a>
+        <a href="{% url 'bgb_webcontract:request' %}">Создать заявку</a>
     {% endblock %}</div>
     <div id="content"> {% block content %} {% endblock %}</div>
     <div id="footer">
