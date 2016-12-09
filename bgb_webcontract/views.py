@@ -15,6 +15,7 @@ def index_view(request):
 def backend_view(request):
     new_request_list = Request.objects.filter(accepted=False).order_by('created_date')
     latest_request_list = Request.objects.filter(accepted=True).order_by('created_date')
+    print(new_request_list)
     return render(request, 'bgb_webcontract/backend.html',
                   {'new_request_list': new_request_list,
                    'latest_request_list': latest_request_list})
@@ -88,6 +89,7 @@ def request_detail_backend_view(request, request_id):
                                                      'rejection_reason'))
     if request.method == 'POST':
         request_form = RequestForm(request.POST, instance=req)
+        print(request.POST)
         contract_formset = ContractInlineFormset(request.POST, instance=req)
         if contract_formset.is_valid() and request_form.is_valid():
             if 'save_to_billing' in request.POST:
