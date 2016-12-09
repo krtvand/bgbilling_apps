@@ -14,7 +14,6 @@
         </ul>
         </div>
 
-
  	<div class="tab-content">
         <div role="tabpanel" class="tab-pane active" id="new">
             <table class="table table-bordered table-hover">
@@ -40,8 +39,6 @@
             </table>
         </div>
 
-
-
         <div role="tabpanel" class="tab-pane" id="last">
             <table class="table table-bordered table-hover">
                 <thead>
@@ -66,19 +63,13 @@
             </table>
         </div>
 	</div>
-
-
-
-
         <div class="col-md-4">
             &nbsp
         </div>
-
-
-
     </div>
-
-    <script>
+{% endblock %}
+{% block javascripts %}
+<script>
 	jQuery( function($) {
 		$('tbody tr[data-href]').addClass('clickable').click( function() {
 			window.location = $(this).attr('data-href');
