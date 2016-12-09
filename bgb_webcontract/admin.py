@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Question, Request, Contract, Department
+from .models import Request, Contract, Department
 
 class ContractInline(admin.TabularInline):
     model = Contract

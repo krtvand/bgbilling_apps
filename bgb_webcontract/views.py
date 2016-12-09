@@ -1,25 +1,16 @@
-from django.shortcuts import render, get_object_or_404, render_to_response
-from django.http import HttpResponse, HttpResponseRedirect
 from django.core.urlresolvers import reverse
-from django.views import generic
-from django.utils import timezone
 from django.forms import inlineformset_factory
 from django.forms import modelformset_factory, modelform_factory
+from django.http import HttpResponse, HttpResponseRedirect
+from django.shortcuts import render, get_object_or_404
+from django.utils import timezone
+from django.views import generic
 
-from .models import Choice, Question, Request, Contract, Department
+from .models import Request, Contract
+from lib.bgb_api import BGBContract
 
-class IndexView(generic.ListView):
-    template_name = 'bgb_webcontract/index.html'
-    context_object_name = 'latest_question_list'
-
-    def get_queryset(self):
-        """
-        Return the last five published questions (not including those set to be
-        published in the future).
-        """
-        return Question.objects.filter(
-            pub_date__lte=timezone.now()
-        ).order_by('-pub_date')[:5]
+def index_view(request):
+    return HttpResponseRedirect(reverse('bgb_webcontract:request'))
 
 def backend_view(request):
     new_request_list = Request.objects.filter(accepted=False).order_by('created_date')
@@ -28,57 +19,9 @@ def backend_view(request):
                   {'new_request_list': new_request_list,
                    'latest_request_list': latest_request_list})
 
-class DetailView(generic.DetailView):
-    model = Question
-    template_name = 'bgb_webcontract/detail.html'
-
-    def get_queryset(self):
-        """
-        Excludes any questions that aren't published yet.
-        """
-        return Question.objects.filter(pub_date__lte=timezone.now())
-
-class ResultsView(generic.DetailView):
-    model = Question
-    template_name = 'bgb_webcontract/results.html'
-
-def vote(request, question_id):
-    question = get_object_or_404(Question, pk=question_id)
-    try:
-        selected_choice = question.choice_set.get(pk=request.POST['choice'])
-    except (KeyError, Choice.DoesNotExist):
-        # Redisplay the question voting form.
-        return render(request, 'bgb_webcontract/detail.html', {
-            'question': question,
-            'error_message': "You didn't select a choice.",
-        })
-    else:
-        selected_choice.votes += 1
-        selected_choice.save()
-        # Always return an HttpResponseRedirect after successfully dealing
-        # with POST data. This prevents data from being posted twice if a
-        # user hits the Back button.
-        return HttpResponseRedirect(reverse('bgb_webcontract:results', args=(question.id,)))
-
-def request_exists_view(request, request_id):
-    try:
-        it_manager_request = Request.objects.get(pk=request_id)
-    except (KeyError):
-        return render(request, 'bgb_webcontract/request_detail.html',
-                      {'request_id': request_id,
-                       'error_message': 'This request id does nor exist'})
-    else:
-        contarct_list = it_manager_request.contract_set.all()
-        return render(request, 'bgb_webcontract/request_detail.html',
-                      {'request_id': request_id,
-                       'it_manager_fullname': it_manager_request.it_manager_fullname,
-                       'it_manager_position': it_manager_request.it_manager_position,
-                       'it_manager_email': it_manager_request.it_manager_email,
-                       'created_date': it_manager_request.created_date,
-                       'contract_list': contarct_list})
 
 def request_view(request):
-    ContractFormset = modelformset_factory(Contract, fields=('full_name', 'position'))
+    ContractFormset = modelformset_factory(Contract, fields=('full_name', 'position'), extra=5)
     RequestForm = modelform_factory(Request, fields=('it_manager_fullname',
                                                           'it_manager_position',
                                                           'it_manager_email',
@@ -93,7 +36,11 @@ def request_view(request):
                 it_manager_request.contract_set.add(contract, bulk=False)
                 contract.create_login()
                 contract.create_password()
-            return HttpResponseRedirect(reverse('bgb_webcontract:thanks'))
+            return HttpResponse('Спасибо за использование нашей системы. '
+                                'Введенные данные в ближайшее время '
+                                'будут проверены администратором, '
+                                'после чего на указанный e-mail '
+                                'будет отправлен список логинов и паролей')
     else:
         contract_formset = ContractFormset(queryset=Contract.objects.none())
         request_form = RequestForm()
@@ -112,18 +59,27 @@ def request_detail_view(request, request_id):
         request_form = RequestForm(request.POST, instance=req)
         contract_formset = ContractInlineFormset(request.POST, instance=req)
         if contract_formset.is_valid() and request_form.is_valid():
-            contract_formset.save()
             request_form.save()
-            return HttpResponseRedirect(reverse('bgb_webcontract:thanks'))
+            contracts = contract_formset.save()
+            for contract in contracts:
+                contract.create_login()
+                contract.create_password()
+            action_info = 'Изменения сохранены'
+            return render(request, 'bgb_webcontract/request_detail.html',
+                          {'contract_formset': contract_formset,
+                           'request_form': request_form,
+                           'request': req,
+                           'action_info': action_info})
     else:
         request_form = RequestForm(instance=req)
         contract_formset = ContractInlineFormset(instance=req)
     return render(request, 'bgb_webcontract/request_detail.html',
-                              {'contract_formset': contract_formset, 'request_form': request_form, 'request': req})
+                              {'contract_formset': contract_formset,
+                               'request_form': request_form, 'request': req})
 
 def request_detail_backend_view(request, request_id):
     req = get_object_or_404(Request, pk=request_id)
-    ContractInlineFormset = inlineformset_factory(Request, Contract, extra=0,
+    ContractInlineFormset = inlineformset_factory(Request, Contract, extra=5,
                                                   fields=('full_name', 'position', 'login', 'password'))
     RequestForm = modelform_factory(Request, fields=('it_manager_fullname',
                                                      'it_manager_position',
@@ -136,20 +92,65 @@ def request_detail_backend_view(request, request_id):
         if contract_formset.is_valid() and request_form.is_valid():
             if 'save_to_billing' in request.POST:
                 req.accepted = True
-                req.rejection_reason
-                request_form.save()
-                contract_formset.save()
+                req.rejection_reason = ''
+                # Сохраняем изменения
+                req = request_form.save()
+                contracts = contract_formset.save()
+                # Формируем csv для отправки данных заявителю
                 req.create_csv()
-                return HttpResponse('Data was saved in BGBiling')
+                for c in contracts:
+                    bgb_contract = BGBContract()
+                    # Создаем договор в БГБиллинге
+                    bgb_contract.create_university_contract(fullname=c.full_name,
+                                                            department=req.department_id.id,
+                                                            it_manager=' '.join([req.it_manager_fullname,
+                                                                                 req.it_manager_position,
+                                                                                 req.it_manager_email]),
+                                                            position=c.position,
+                                                            login=c.login,
+                                                            password=c.password,)
+                request_form = RequestForm(instance=req)
+                contract_formset = ContractInlineFormset(instance=req)
+                action_info = "Данные сохранены и отправлены в БГБиллинг"
+                return render(request, 'bgb_webcontract/request_detail_backend.html',
+                              {'contract_formset': contract_formset,
+                               'request_form': request_form,
+                               'request': req,
+                               'action_info': action_info})
             elif 'save' in request.POST:
                 contract_formset.save()
                 request_form.save()
-                return HttpResponse('Data saved')
+                action_info = 'Изменения сохранены'
+                request_form = RequestForm(instance=req)
+                contract_formset = ContractInlineFormset(instance=req)
+                return render(request, 'bgb_webcontract/request_detail_backend.html',
+                              {'contract_formset': contract_formset,
+                               'request_form': request_form,
+                               'request': req,
+                               'action_info': action_info})
+            elif 'generate_login_pasw' in request.POST:
+                # Сохраняем данные из POST
+                contract_formset.save()
+                # Получаем все договора для данной заявки
+                contracts = Request.objects.get(pk=request_id).contract_set.all()
+                action_info = 'Отсутствуют договора для генерации логинов и паролей'
+                for contract in contracts:
+                    contract.create_login()
+                    contract.create_password()
+                    if contract.login:
+                        action_info = 'Логины и пароли успешно сгенерированы'
+                    else:
+                        action_info = 'При генерации логинов и паролей возникла ошибка'
+                # Будем отрисовывать формы с измененными данными
+                request_form = RequestForm(instance=req)
+                contract_formset = ContractInlineFormset(instance=req)
+                return render(request, 'bgb_webcontract/request_detail_backend.html',
+                              {'contract_formset': contract_formset,
+                               'request_form': request_form,
+                               'request': req,
+                               'action_info': action_info})
     else:
         request_form = RequestForm(instance=req)
         contract_formset = ContractInlineFormset(instance=req)
     return render(request, 'bgb_webcontract/request_detail_backend.html',
                   {'contract_formset': contract_formset, 'request_form': request_form, 'request': req})
-
-def thanks(request):
-    return HttpResponse("Thanks")

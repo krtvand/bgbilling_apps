@@ -1,10 +1,6 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>BGB Webcontract backend</title>
-</head>
-<body>
+{% extends "bgb_webcontract/backend_base.html" %}
+{% block title %}BGB Webcontract backend{% endblock %}
+{% block content %}
     <div class="new_requests">
     <p>Новые заявки:</p>
         {% if new_request_list %}
@@ -33,6 +29,4 @@
             </ul>
         {% endif %}
     </div>
-
-</body>
-</html>
+{% endblock %}

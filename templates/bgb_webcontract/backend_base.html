@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}Система создания договоров BGBilling{% endblock %}</title>
+</head>
+<body>
+    <div id="topmenu"> {% block topmenu %}
+        <a href="{% url 'bgb_webcontract:backend' %}">Бэкенд</a>
+    {% endblock %}</div>
+    <div id="content"> {% block content %} {% endblock %}</div>
+    <div id="footer">
+        {% block footer %}Создано by Центр Интернет ФГБОУ ВО МГУ им.Н.П.Огарева {% endblock %}
+    </div>
+</body>
+</html>

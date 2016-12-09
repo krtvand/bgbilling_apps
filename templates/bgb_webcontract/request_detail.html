@@ -20,5 +20,8 @@
         </table>
         <input type="submit" name="save" value="Сохранить изменения">
     </form>
+    {% if action_info %}
+        <div id="action-info">{{ action_info }}</div>
+    {% endif %}
 </body>
 </html>
