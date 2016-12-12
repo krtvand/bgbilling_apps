@@ -1,10 +1,7 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Request detail backend</title>
-</head>
-<body>
+{% extends "bgb_webcontract/backend_base.html" %}
+
+{% block title %}Request detail backend{% endblock %}
+{% block content %}
     <form action="{% url 'bgb_webcontract:request_detail_backend' request.id %}" method="post">
         {% csrf_token %}
         {{ request_form }}
@@ -14,7 +11,9 @@
         </table>
         <input type="submit" name="save" value="Сохранить изменения">
         <input type="submit" name="save_to_billing" value="Сохранить в Биллинг">
+        <input type="submit" name="generate_login_pasw" value="Сгенерировать логины и сохранить">
     </form>
-
-</body>
-</html>
+    {% if action_info %}
+    <div id="action-info">{{ action_info }}</div>
+    {% endif %}
+{% endblock %}

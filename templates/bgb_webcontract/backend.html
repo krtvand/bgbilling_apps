@@ -1,17 +1,6 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>BGB Webcontract backend</title>
-    <script src="//ajax.googleapis.com/ajax/libs/jquery/3.1.0/jquery.min.js"></script>
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
-  
-    <!-- Latest compiled and minified JavaScript -->
-    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
-    
-</head>
-</head>
-<body>
+{% extends "bgb_webcontract/backend_base.html" %}
+{% block title %}BGB Webcontract backend{% endblock %}
+{% block content %}
     <div class="new_requests row">
         <div class="col-md-4">
             &nbsp
@@ -23,8 +12,8 @@
             <li role="presentation" class="active"><a href="#new" aria-controls="new" role="tab" data-toggle="tab"><h5>Новые заявки</h5></a></li>
             <li role="presentation"><a href="#last" aria-controls="last" role="tab" data-toggle="tab"><h5>Последние заявки</h5></a></li>
         </ul>
+       
 
-        
  	<div class="tab-content">
         <div role="tabpanel" class="tab-pane active" id="new">
             <table class="table table-bordered table-hover">
@@ -42,15 +31,13 @@
                                 <td>{{ request.it_manager_position}}</td>
                             </tr>
                         {% endfor %}
-                        
+
                     {% else %}
                         <tr><td colspan="3" style="text-align: center;">Нет новых заявок</td></tr>
                     {% endif %}
                 </tbody>
             </table>
         </div>
-        
-           
 
         <div role="tabpanel" class="tab-pane" id="last">
             <table class="table table-bordered table-hover">
@@ -68,7 +55,7 @@
                                 <td>{{ request.it_manager_position}}</td>
                             </tr>
                         {% endfor %}
-                        
+
                     {% else %}
                         <tr><td colspan="3" style="text-align: center;">Нет доступных заявок</td></tr>
                     {% endif %}
@@ -76,26 +63,18 @@
             </table>
         </div>
 	</div>
-                               
-           
-       
-
+	</div>
         <div class="col-md-4">
             &nbsp
         </div>
-
-
-            
     </div>
-
-</body>
-
+{% endblock %}
+{% block javascripts %}
 <script>
 	jQuery( function($) {
 		$('tbody tr[data-href]').addClass('clickable').click( function() {
 			window.location = $(this).attr('data-href');
 		});
 	});
-</script>
-
-</html>
+    </script>
+{% endblock %}

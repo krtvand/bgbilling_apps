@@ -3,31 +3,35 @@
 <head>
     <meta charset="UTF-8">
     <title>Request {{request.id}}</title>
-    <!-- Latest compiled and minified JavaScript -->
-<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
-
-
+     <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.5/jquery.min.js"></script>
     <!-- Latest compiled and minified CSS -->
-<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
 
-<!-- Optional theme -->
-<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap-theme.min.css" integrity="sha384-rHyoN1iRsVXV4nD0JutlnGaslCJuC7uwjduW9SVrLvRYooPp2bWYgmgJQIXwl/Sp" crossorigin="anonymous">
+    <!-- Optional theme -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap-theme.min.css" integrity="sha384-rHyoN1iRsVXV4nD0JutlnGaslCJuC7uwjduW9SVrLvRYooPp2bWYgmgJQIXwl/Sp" crossorigin="anonymous">
 
-
+    <!-- Latest compiled and minified JavaScript -->
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
 </head>
 <body>
     <form action="{% url 'bgb_webcontract:request_detail' request.id %}" method="post">
-         {% csrf_token %}
-         {{ request_form.it_manager_fullname}}
-         {{ request_form.it_manager_email}}
-         <br>
-         <input  type="text" name="" value="{{ request_form.it_manager_fullname.value }}">
-           <!--   {{ request_form}} -->
-           <!-- {{ department_form }} -->
-            
-               <!-- {{ contract_formset}} -->
-           
+        {% csrf_token %}
+
+         <div class="rf alert alert-success">{{ request_form }}</div>
+        <div>Статус заявки: </div>
+        {% if not request.accepted %}
+            {{ request.rejection_reason }}
+        {% else %}
+            Заявка обработана. Список логинов и паролей отправлен на адрес {{ request.it_manager_email }}
+        {% endif %}
+        {{ department_form }}
+        <table>
+            {{ contract_formset.as_table }}
+        </table>
         <input type="submit" name="save" value="Сохранить изменения">
     </form>
+    {% if action_info %}
+        <div id="action-info">{{ action_info }}</div>
+    {% endif %}
 </body>
 </html>
