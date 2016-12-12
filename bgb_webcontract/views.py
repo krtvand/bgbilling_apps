@@ -97,10 +97,13 @@ def request_detail_backend_view(request, request_id):
                 req.rejection_reason = ''
                 # Сохраняем изменения
                 req = request_form.save()
-                contracts = contract_formset.save()
+                contract_formset.save()
                 # Формируем csv для отправки данных заявителю
                 req.create_csv()
-                for c in contracts:
+                # Получаем все договора для данной заявки
+                contracts_from_db = Request.objects.get(pk=request_id).contract_set.all()
+                action_info = 'Отсутствуют договора для сохранения'
+                for c in contracts_from_db:
                     bgb_contract = BGBContract()
                     # Создаем договор в БГБиллинге
                     bgb_contract.create_university_contract(fullname=c.full_name,
@@ -111,9 +114,9 @@ def request_detail_backend_view(request, request_id):
                                                             position=c.position,
                                                             login=c.login,
                                                             password=c.password,)
+                    action_info = "Данные сохранены и отправлены в БГБиллинг"
                 request_form = RequestForm(instance=req)
                 contract_formset = ContractInlineFormset(instance=req)
-                action_info = "Данные сохранены и отправлены в БГБиллинг"
                 return render(request, 'bgb_webcontract/request_detail_backend.html',
                               {'contract_formset': contract_formset,
                                'request_form': request_form,

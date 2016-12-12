@@ -191,6 +191,8 @@ class BGBContract(object):
             uname=res._uname
             passwd=res._passw
             typeId=res._typeId
+            dateFrom = res._dateFrom
+            sessCntLimit = res._sessCntLimit
             if 'login' in kwargs.keys():
                 uname=str(kwargs['login'])
             if 'passwd' in kwargs.keys():
@@ -201,7 +203,9 @@ class BGBContract(object):
                 "_passw": str(passwd),
                 "_typeId": typeId,
                 "_uname": uname,
-                "_title": uname
+                "_title": uname,
+                "_dateFrom": dateFrom,
+                "_sessCntLimit": sessCntLimit
             }
             try:
                 res = client.service.inetServUpdate(serv, '', False, False, 0)
