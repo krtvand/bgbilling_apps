@@ -3,16 +3,61 @@
 <head>
     <meta charset="UTF-8">
     <title>Create Request</title>
+    <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.5/jquery.min.js"></script>
+    <!-- Latest compiled and minified CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+
+    <!-- Optional theme -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap-theme.min.css" integrity="sha384-rHyoN1iRsVXV4nD0JutlnGaslCJuC7uwjduW9SVrLvRYooPp2bWYgmgJQIXwl/Sp" crossorigin="anonymous">
+
 </head>
 <body>
+
     <form action="{% url 'bgb_webcontract:request' %}" method="post">
     {% csrf_token %}
-    {{ request_form }}
+    <div class="rf alert alert-success">{{ request_form }}</div>
     {{ department_form }}
-    <table>
-    {{ contract_formset.as_table }}
-    </table>
-    <input type="submit" value="OK">
+    
+    <div class="table" style="margin-left: 10px;">
+        <table>
+            {{ contract_formset.as_table }}
+        </table> 
+    </div>
+
+    <button type="button" value="Add More" id="add_more" class="btn btn-warning" style="margin-left: 10px;"">Добавить</button>
+
+    
+    
+    <button type="submit" class="btn btn-success" ">OK</button>
     </form>
+   <div id="empty_form" style="display:none; ">
+        <table class='no_error'>
+            {{ serviceFormset.empty_form.as_table }}
+        </table>
+    </div>
+
+    <script type="text/javascript" language="JavaScript" >
+        $('#add_more').click(function() {
+                cloneMore('tbody:last', 'form');
+            });
+        function cloneMore(selector, type) {
+            var newElement = $(selector).clone(true);
+            var total = $('#id_' + type + '-TOTAL_FORMS').val();
+            newElement.find(':input').each(function() {
+                var name = $(this).attr('name').replace('-' + (total-1) + '-','-' + total + '-');
+                var id = 'id_' + name;
+
+                $(this).attr({'name': name, 'id': id}).val('').removeAttr('checked');
+            });
+            newElement.find('label').each(function() {
+                var newFor = $(this).attr('for').replace('-' + (total-1) + '-','-' + total + '-');
+                $(this).attr('for', newFor);
+            });
+            total++;
+            $('#id_' + type + '-TOTAL_FORMS').val(total);
+            $(selector).after(newElement);
+        }   
+        </script>
+
 </body>
 </html>

@@ -13,12 +13,23 @@
 
 </head>
 <body>
-    <div id="topmenu"> {% block topmenu %}
-        <a href="{% url 'bgb_webcontract:backend' %}">Бэкенд</a>
-        <a href="{% url 'bgb_webcontract:request' %}">Создать заявку</a>
+    <div id="topmenu" class="row alert alert-success" style="margin-top: 10px; margin-bottom: 10px;"> {% block topmenu %}
+
+            <div class="topheader col-md-4" style="font-family: Trebuchet MS; font-size: 25px; display: inline-block;" >
+                BGB WebContract
+            </div>
+
+            <div id="buttons" class="col-md-4" style="display: inline-block;" align="center">
+                <button type="button" class="btn btn-primary"><a href="{% url 'bgb_webcontract:backend' %}" style="color:white">Бэкенд</a></button>
+                <button type="button" class="btn btn-primary"><a href="{% url 'bgb_webcontract:request' %}" style="color:white">Создать заявку</a></button>
+            </div>
+            
+            <div class="col-md-4">
+                &nbsp
+            </div>
     {% endblock %}</div>
-    <div id="content"> {% block content %} {% endblock %}</div>
-    <div id="footer">
+    <div id="content" style=""> {% block content %} {% endblock %}</div>
+    <div id="footer" style="text-align: center; padding-top: 30px;">
         {% block footer %}Создано by Центр Интернет ФГБОУ ВО МГУ им.Н.П.Огарева {% endblock %}
     </div>
 </body>

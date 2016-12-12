@@ -22,7 +22,7 @@ def backend_view(request):
 
 
 def request_view(request):
-    ContractFormset = modelformset_factory(Contract, fields=('full_name', 'position'), extra=5)
+    ContractFormset = modelformset_factory(Contract, fields=('full_name', 'position'))
     RequestForm = modelform_factory(Request, fields=('it_manager_fullname',
                                                           'it_manager_position',
                                                           'it_manager_email',
@@ -50,15 +50,17 @@ def request_view(request):
 
 def request_detail_view(request, request_id):
     req = get_object_or_404(Request, pk=request_id)
-    ContractInlineFormset = inlineformset_factory(Request, Contract, extra=5,
+    ContractInlineFormset = inlineformset_factory(Request, Contract,
                                                   fields=('full_name', 'position'))
     RequestForm = modelform_factory(Request, fields=('it_manager_fullname',
                                                      'it_manager_position',
                                                      'it_manager_email',
                                                      'department_id'))
     if request.method == 'POST':
+        
         request_form = RequestForm(request.POST, instance=req)
         contract_formset = ContractInlineFormset(request.POST, instance=req)
+        
         if contract_formset.is_valid() and request_form.is_valid():
             request_form.save()
             contracts = contract_formset.save()
@@ -67,7 +69,7 @@ def request_detail_view(request, request_id):
                 contract.create_password()
             action_info = 'Изменения сохранены'
             return render(request, 'bgb_webcontract/request_detail.html',
-                          {'contract_formset': contract_formset,
+                          {'contract_formset': contract_formset, 
                            'request_form': request_form,
                            'request': req,
                            'action_info': action_info})
@@ -80,7 +82,7 @@ def request_detail_view(request, request_id):
 
 def request_detail_backend_view(request, request_id):
     req = get_object_or_404(Request, pk=request_id)
-    ContractInlineFormset = inlineformset_factory(Request, Contract, extra=5,
+    ContractInlineFormset = inlineformset_factory(Request, Contract, extra = 0,
                                                   fields=('full_name', 'position', 'login', 'password'))
     RequestForm = modelform_factory(Request, fields=('it_manager_fullname',
                                                      'it_manager_position',
@@ -97,13 +99,10 @@ def request_detail_backend_view(request, request_id):
                 req.rejection_reason = ''
                 # Сохраняем изменения
                 req = request_form.save()
-                contract_formset.save()
+                contracts = contract_formset.save()
                 # Формируем csv для отправки данных заявителю
                 req.create_csv()
-                # Получаем все договора для данной заявки
-                contracts_from_db = Request.objects.get(pk=request_id).contract_set.all()
-                action_info = 'Отсутствуют договора для сохранения'
-                for c in contracts_from_db:
+                for c in contracts:
                     bgb_contract = BGBContract()
                     # Создаем договор в БГБиллинге
                     bgb_contract.create_university_contract(fullname=c.full_name,
@@ -114,9 +113,9 @@ def request_detail_backend_view(request, request_id):
                                                             position=c.position,
                                                             login=c.login,
                                                             password=c.password,)
-                    action_info = "Данные сохранены и отправлены в БГБиллинг"
                 request_form = RequestForm(instance=req)
                 contract_formset = ContractInlineFormset(instance=req)
+                action_info = "Данные сохранены и отправлены в БГБиллинг"
                 return render(request, 'bgb_webcontract/request_detail_backend.html',
                               {'contract_formset': contract_formset,
                                'request_form': request_form,
