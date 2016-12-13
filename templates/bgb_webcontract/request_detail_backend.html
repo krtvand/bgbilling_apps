@@ -4,14 +4,18 @@
 {% block content %}
     <form action="{% url 'bgb_webcontract:request_detail_backend' request.id %}" method="post">
         {% csrf_token %}
-        {{ request_form }}
+        <div class="rf alert alert-success"> {{ request_form }} </div>
         {{ department_form }}
+        <div class="table table-bordered">
         <table>
             {{ contract_formset }}
         </table>
-        <input type="submit" name="save" value="Сохранить изменения">
-        <input type="submit" name="save_to_billing" value="Сохранить в Биллинг">
-        <input type="submit" name="generate_login_pasw" value="Сгенерировать логины и сохранить">
+        </div>
+
+        <button class="btn btn-success" type="submit" name="save" value="Сохранить изменения">Сохранить изменения</button>
+        <button class="btn btn-primary" type="submit" name="save_to_billing" value="Сохранить в Биллинг">Сохранить в Биллинг</button>
+        <button class="btn btn-info" type="submit" name="generate_login_pasw" value="Сгенерировать логины и сохранить">Сгенерировать логины и сохранить</button>
+
     </form>
     {% if action_info %}
     <div id="action-info">{{ action_info }}</div>

@@ -14,24 +14,27 @@
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
 </head>
 <body>
+    <div style="margin-left: 10px;">
     <form action="{% url 'bgb_webcontract:request_detail' request.id %}" method="post">
         {% csrf_token %}
 
          <div class="rf alert alert-success">{{ request_form }}</div>
-        <div>Статус заявки: </div>
+        <div><h3>Статус заявки: </h3></div>
         {% if not request.accepted %}
-            {{ request.rejection_reason }}
+           <h4> {{ request.rejection_reason }} </h4>
         {% else %}
-            Заявка обработана. Список логинов и паролей отправлен на адрес {{ request.it_manager_email }}
+           <h4> Заявка обработана. Список логинов и паролей отправлен на адрес {{ request.it_manager_email }} </h4>
         {% endif %}
         {{ department_form }}
         <table>
             {{ contract_formset.as_table }}
         </table>
-        <input type="submit" name="save" value="Сохранить изменения">
-    </form>
+
+        <button class="btn btn-success" type="submit" name="save" value="Сохранить изменения">Сохранить изменения</button>
+            </form>
     {% if action_info %}
-        <div id="action-info">{{ action_info }}</div>
+        <div id="action-info"><h4>{{ action_info }}</h4></div>
     {% endif %}
+    </div>
 </body>
 </html>

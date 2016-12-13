@@ -50,7 +50,7 @@ def request_view(request):
 
 def request_detail_view(request, request_id):
     req = get_object_or_404(Request, pk=request_id)
-    ContractInlineFormset = inlineformset_factory(Request, Contract,
+    ContractInlineFormset = inlineformset_factory(Request, Contract, extra=0,
                                                   fields=('full_name', 'position'))
     RequestForm = modelform_factory(Request, fields=('it_manager_fullname',
                                                      'it_manager_position',
