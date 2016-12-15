@@ -14,9 +14,6 @@ class Department(models.Model):
     id = models.IntegerField(primary_key=True)
     name = models.CharField(max_length=200, verbose_name='Факультет/Подразделение')
 
-    def __init__(self):
-        self.synchronize_with_bgb()
-
     def synchronize_with_bgb(self):
         BGB_CATALOG_PID = 9
         bgbilling = BGBilling()
@@ -25,8 +22,6 @@ class Department(models.Model):
         for d in bgb_deps:
             if d not in cur_deps:
                 print(d)
-
-
 
     def __str__(self):
         return self.name
