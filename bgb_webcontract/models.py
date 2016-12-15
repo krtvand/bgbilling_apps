@@ -7,15 +7,32 @@ from random import choice
 from django.db import models
 from django.utils import timezone
 
+from lib.bgb_api import BGBilling
+
 
 class Department(models.Model):
     id = models.IntegerField(primary_key=True)
     name = models.CharField(max_length=200, verbose_name='Факультет/Подразделение')
 
+    def __init__(self):
+        self.synchronize_with_bgb()
+
+    def synchronize_with_bgb(self):
+        BGB_CATALOG_PID = 9
+        bgbilling = BGBilling()
+        bgb_deps = bgbilling.get_bgb_catalog_list(BGB_CATALOG_PID)
+        cur_deps = {d.id: d.name for d in self.objects.all()}
+        for d in bgb_deps:
+            if d not in cur_deps:
+                print(d)
+
+
+
     def __str__(self):
         return self.name
 
 class Request(models.Model):
+
     it_manager_fullname = models.CharField(max_length=200, verbose_name='ФИО заявителя полностью')
     it_manager_email = models.EmailField(verbose_name='Email заявителя')
     it_manager_position = models.CharField(max_length=200, verbose_name='Должность заявителя')

@@ -1,35 +1,53 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-#print("Content-Type: text/plain\r\n")
 
-import requests
 import urllib
 import urllib.parse
-import csv
-import suds
 import logging
-import os
 import sys
 import xml.etree.ElementTree as ET
+
+import requests
+import suds
 from suds.client import Client
 from suds.transport.http import HttpAuthenticated
 
 
-#logging.basicConfig(level=logging.DEBUG)
+class BGBilling(object):
+    def __init__(self, bgb_server='http://10.60.0.10:8080', bgb_login='icticket', bgb_password='ic05102015'):
+        self.bgb_server = bgb_server
+        self.bgb_login = bgb_login
+        self.bgb_password = bgb_password
 
+    def get_bgb_catalog_list(self, pid):
+        """ Получение содержимого списка из справочника БГБиллинга по его ID
 
-class BGBContract(object):
+        :param pid: ID элемента справочника в БГБиллинге.
+        Значение можно получить через клиент биллинга
+        раздел "Справочники" -> "Другие"
+        """
+        payload = {
+            'user': self.bgb_login,  # логин
+            'pswd': self.bgb_password,  # пароль
+            'module': 'admin',  # модуль
+            'action': 'ListValues',  # действие
+            'pid': pid,
+        }
+        r = requests.get(self.bgb_server + "/bgbilling/executer", params=payload)
+        root = ET.fromstring(r.text)
+        results = {}
+        for values in root:
+            for el in values:
+                results[el.get('id')] = el.get('title')
+        return results
+
+class BGBContract(BGBilling):
 
 
     # id договора
     id = 0
     # номер договора
     title = ""
-
-    def __init__(self, bgb_server='http://10.60.0.10:8080', bgb_login='icticket', bgb_password='ic05102015'):
-        self.bgb_server = bgb_server
-        self.bgb_login = bgb_login
-        self.bgb_password = bgb_password
 
     def create_university_contract(self, fullname, department,
                                    position, it_manager, login,
@@ -159,6 +177,9 @@ class BGBContract(object):
             print("Error in method setLstParam: %s" % root.text)
             raise "Error in method setLstParam: %s" % root.text
 
+
+
+
     def getInetInfo(self,cid):
         """Возвращает данные клиента в модуле Inet
 
@@ -222,10 +243,4 @@ class BGBContract(object):
 
 if __name__ == '__main__':
     contract = BGBContract()
-    directory = os.getcwd()
-    with open(directory + '\\dep-study@adm.mrsu.ru.csv', 'r') as csvfile:
-        spamreader = csv.reader(csvfile, delimiter=';')
-        for row in spamreader:
-            if row[1]!="":
-                print(row[0],row[1],row[2],row[3],row[4])
-                contract.create_university_contract(28)
+    contract.get_bgb_catalog_list(pid=9)
