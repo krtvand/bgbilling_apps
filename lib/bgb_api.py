@@ -38,7 +38,7 @@ class BGBilling(object):
         results = {}
         for values in root:
             for el in values:
-                results[el.get('id')] = el.get('title')
+                results[int(el.get('id'))] = el.get('title')
         return results
 
 class BGBContract(BGBilling):

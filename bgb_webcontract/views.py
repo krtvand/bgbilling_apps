@@ -6,7 +6,7 @@ from django.shortcuts import render, get_object_or_404
 from django.utils import timezone
 from django.views import generic
 
-from .models import Request, Contract
+from .models import Request, Contract, Department
 from lib.bgb_api import BGBContract
 
 def index_view(request):
@@ -43,6 +43,8 @@ def request_view(request):
                                 'после чего на указанный e-mail '
                                 'будет отправлен список логинов и паролей')
     else:
+        dep = Department()
+        dep.synchronize_with_bgb()
         contract_formset = ContractFormset(queryset=Contract.objects.none())
         request_form = RequestForm()
     return render(request, 'bgb_webcontract/request.html',
