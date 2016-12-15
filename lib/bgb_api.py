@@ -5,19 +5,27 @@ import urllib
 import urllib.parse
 import logging
 import sys
+import os
 import xml.etree.ElementTree as ET
 
 import requests
 import suds
 from suds.client import Client
 from suds.transport.http import HttpAuthenticated
+import configparser
+
 
 
 class BGBilling(object):
     def __init__(self, bgb_server='http://10.60.0.10:8080', bgb_login='icticket', bgb_password='ic05102015'):
-        self.bgb_server = bgb_server
-        self.bgb_login = bgb_login
-        self.bgb_password = bgb_password
+        config = configparser.ConfigParser()
+        project_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        config_file = project_dir + '/etc/bgb_webcontract.conf'
+        print(config_file)
+        config.read(config_file)
+        self.bgb_server = 'http://' + config.get('bgbilling', 'BGBILLING_HOST') + ':' + config.get('bgbilling', 'BGBILLING_PORT')
+        self.bgb_login = config.get('bgbilling', 'BGBILLING_LOGIN')
+        self.bgb_password = config.get('bgbilling', 'BGBILLING_PASSWORD')
 
     def get_bgb_catalog_list(self, pid):
         """ Получение содержимого списка из справочника БГБиллинга по его ID
@@ -243,4 +251,3 @@ class BGBContract(BGBilling):
 
 if __name__ == '__main__':
     contract = BGBContract()
-    contract.get_bgb_catalog_list(pid=9)
