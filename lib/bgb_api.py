@@ -20,7 +20,7 @@ class BGBilling(object):
     def __init__(self, bgb_server='http://10.60.0.10:8080', bgb_login='icticket', bgb_password='ic05102015'):
         config = configparser.ConfigParser()
         project_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        config_file = project_dir + '/etc/bgb_webcontract.conf'
+        config_file = project_dir + '/etc/bgbilling_apps.conf'
         print(config_file)
         config.read(config_file)
         self.bgb_server = 'http://' + config.get('bgbilling', 'BGBILLING_HOST') + ':' + config.get('bgbilling', 'BGBILLING_PORT')
