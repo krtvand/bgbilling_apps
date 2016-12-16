@@ -59,10 +59,8 @@ def request_detail_view(request, request_id):
                                                      'it_manager_email',
                                                      'department_id'))
     if request.method == 'POST':
-        
         request_form = RequestForm(request.POST, instance=req)
         contract_formset = ContractInlineFormset(request.POST, instance=req)
-        
         if contract_formset.is_valid() and request_form.is_valid():
             request_form.save()
             contracts = contract_formset.save()
@@ -101,7 +99,9 @@ def request_detail_backend_view(request, request_id):
                 req.rejection_reason = ''
                 # Сохраняем изменения
                 req = request_form.save()
-                contracts = contract_formset.save()
+                contract_formset.save()
+                # Получаем все договора для данной заявки (а не только из POST)
+                contracts = Request.objects.get(pk=request_id).contract_set.all()
                 # Формируем csv для отправки данных заявителю
                 req.create_csv()
                 for c in contracts:

@@ -45,7 +45,7 @@ class Request(models.Model):
                                       verbose_name='Факультет/Подразделение')
     def create_csv(self):
         if self.it_manager_email:
-            file_name = self.it_manager_email + '_' + str(self.created_date) + '.csv'
+            file_name = self.it_manager_email + '_' + str(self.created_date.date()) + '.csv'
         else:
             raise Exception('Email is not defined')
         directory = os.getcwd() + '/bgb_webcontract/generated_files/'
