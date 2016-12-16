@@ -50,7 +50,7 @@ class Request(models.Model):
             raise Exception('Email is not defined')
         directory = os.getcwd() + '/bgb_webcontract/generated_files/'
         if not os.path.exists(directory):
-            raise Exception('Directory %s is not exist' % directory)
+            os.makedirs(directory)
         else:
             with open(directory + file_name, 'w', newline='') as f:
                 wr = csv.writer(f, delimiter=';')
