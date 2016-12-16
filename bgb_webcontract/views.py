@@ -103,21 +103,23 @@ def request_detail_backend_view(request, request_id):
                 # Получаем все договора для данной заявки (а не только из POST)
                 contracts = Request.objects.get(pk=request_id).contract_set.all()
                 # Формируем csv для отправки данных заявителю
-                req.create_csv()
-                for c in contracts:
-                    bgb_contract = BGBContract()
-                    # Создаем договор в БГБиллинге
-                    bgb_contract.create_university_contract(fullname=c.full_name,
-                                                            department=req.department_id.id,
-                                                            it_manager=' '.join([req.it_manager_fullname,
-                                                                                 req.it_manager_position,
-                                                                                 req.it_manager_email]),
-                                                            position=c.position,
-                                                            login=c.login,
-                                                            password=c.password,)
+                try:
+                    for c in contracts:
+                        bgb_contract = BGBContract()
+                        # Создаем договор в БГБиллинге
+                        bgb_contract.create_university_contract(fullname=c.full_name,
+                                                                department=req.department_id.id,
+                                                                it_manager=' '.join([req.it_manager_fullname,
+                                                                                     req.it_manager_position,
+                                                                                     req.it_manager_email]),
+                                                                position=c.position,
+                                                                login=c.login,
+                                                                password=c.password,)
+                    action_info = "Данные сохранены и отправлены в БГБиллинг"
+                except Exception as e:
+                    action_info = "При сохранении данных в БГБиллинг возникла ошибка %s" % e
                 request_form = RequestForm(instance=req)
                 contract_formset = ContractInlineFormset(instance=req)
-                action_info = "Данные сохранены и отправлены в БГБиллинг"
                 return render(request, 'bgb_webcontract/request_detail_backend.html',
                               {'contract_formset': contract_formset,
                                'request_form': request_form,
@@ -147,6 +149,25 @@ def request_detail_backend_view(request, request_id):
                         action_info = 'Логины и пароли успешно сгенерированы'
                     else:
                         action_info = 'При генерации логинов и паролей возникла ошибка'
+                # Будем отрисовывать формы с измененными данными
+                request_form = RequestForm(instance=req)
+                contract_formset = ContractInlineFormset(instance=req)
+                return render(request, 'bgb_webcontract/request_detail_backend.html',
+                              {'contract_formset': contract_formset,
+                               'request_form': request_form,
+                               'request': req,
+                               'action_info': action_info})
+            elif 'create_excel' in request.POST:
+                # Сохраняем данные из POST
+                contract_formset.save()
+                # Получаем все договора для данной заявки
+                contracts = Request.objects.get(pk=request_id).contract_set.all()
+                action_info = 'Отсутствуют договора для создания excel файла'
+                try:
+                    req.create_excel()
+                    action_info = 'Excel файл успешно сгенерирован'
+                except Exception as e:
+                    action_info = 'При excel файла возникла ошибка %s' % e
                 # Будем отрисовывать формы с измененными данными
                 request_form = RequestForm(instance=req)
                 contract_formset = ContractInlineFormset(instance=req)

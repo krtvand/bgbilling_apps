@@ -6,6 +6,7 @@ from random import choice
 
 from django.db import models
 from django.utils import timezone
+import xlwt
 
 from lib.bgb_api import BGBilling
 
@@ -65,6 +66,31 @@ class Request(models.Model):
                     row[3] = contract.login
                     row[4] = contract.password
                     wr.writerow(row)
+
+    def create_excel(self):
+        WIFI_SSID = 'MRSU'
+        if self.it_manager_email:
+            file_name = self.it_manager_email + '_' + str(self.created_date.date()) + '.xls'
+        else:
+            raise Exception('Email is not defined')
+        directory = os.getcwd() + '/bgb_webcontract/generated_files/'
+        if not os.path.exists(directory):
+            os.makedirs(directory)
+        else:
+            wb = xlwt.Workbook()
+            ws = wb.add_sheet('WiFi MRSU')
+            ws.write(0, 0, 'WiFi сеть')
+            ws.write(0, 1, 'ФИО')
+            ws.write(0, 2, 'Должность')
+            ws.write(0, 3, 'Логин')
+            ws.write(0, 4, 'Пароль')
+            for num, contract in enumerate(self.contract_set.all()):
+                ws.write(num + 1, 0, WIFI_SSID)
+                ws.write(num + 1, 1, contract.full_name)
+                ws.write(num + 1, 2, contract.position)
+                ws.write(num + 1, 3, contract.login)
+                ws.write(num + 1, 4, contract.password)
+            wb.save(directory + file_name)
 
     def __str__(self):
         return ' '.join([str(self.department_id), self.it_manager_fullname,])
