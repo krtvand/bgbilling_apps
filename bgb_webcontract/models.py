@@ -44,6 +44,26 @@ class Request(models.Model):
     rejection_reason = models.CharField(max_length=200, blank=True, default='Заявка не обработана')
     department_id = models.ForeignKey(Department, on_delete=models.CASCADE,
                                       verbose_name='Факультет/Подразделение')
+
+    def sync_contracts_from_bgb(self, department_id=None):
+        """Извлечение информации из БГБиллинга о существующих договорах
+        в целях синхронизации данных с локальной базой данных
+
+        Возможны случаи, когда договора создаются напрямую в Биллинге,
+        а для правильного формирования логинов необходимо
+        знать список использованных логинов для факультета,
+        поскольку логин - есть следущее порядковое 6-ти значное число
+
+        """
+        if department_id is None:
+            department_id = self.department_id_id
+        # ID списка (например справочник типа список "Факультет/Подразделение" - с id 9)
+        LIST_ID = 9
+        bgb = BGBilling()
+        contracts = bgb.get_contracts_by_list_param(list_elem_id=department_id, list_id=LIST_ID)
+        for c in contracts:
+            print(c.cid)
+
     def create_csv(self):
         if self.it_manager_email:
             file_name = self.it_manager_email + '_' + str(self.created_date.date()) + '.csv'
@@ -101,7 +121,7 @@ class Contract(models.Model):
     position = models.CharField(max_length=200, verbose_name='Должность')
     login = models.CharField(max_length=10, blank=True, null=True)
     password = models.CharField(max_length=10, blank=True)
-    request_id = models.ForeignKey(Request, on_delete=models.CASCADE)
+    request_id = models.ForeignKey(Request, on_delete=models.CASCADE, blank=True)
 
     def __str__(self):
         return self.full_name

@@ -1,3 +1,5 @@
+chardet==2.3.0
 Django==1.10.3
 requests==2.12.3
-suds-jurko==0.6
+suds-jurko==0.7.dev0
+xlwt==1.1.2

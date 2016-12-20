@@ -15,7 +15,6 @@ def index_view(request):
 def backend_view(request):
     new_request_list = Request.objects.filter(accepted=False).order_by('created_date')
     latest_request_list = Request.objects.filter(accepted=True).order_by('created_date')
-    print(new_request_list)
     return render(request, 'bgb_webcontract/backend.html',
                   {'new_request_list': new_request_list,
                    'latest_request_list': latest_request_list})
@@ -33,6 +32,8 @@ def request_view(request):
         if contract_formset.is_valid() and request_form.is_valid():
             it_manager_request = request_form.save()
             contracts = contract_formset.save(commit=False)
+            # Синхронизируем локальную базу с данными в БГБиллинге
+            it_manager_request.sync_contracts_from_bgb()
             for contract in contracts:
                 it_manager_request.contract_set.add(contract, bulk=False)
                 contract.create_login()
@@ -91,7 +92,6 @@ def request_detail_backend_view(request, request_id):
                                                      'rejection_reason'))
     if request.method == 'POST':
         request_form = RequestForm(request.POST, instance=req)
-        print(request.POST)
         contract_formset = ContractInlineFormset(request.POST, instance=req)
         if contract_formset.is_valid() and request_form.is_valid():
             if 'save_to_billing' in request.POST:
@@ -142,6 +142,8 @@ def request_detail_backend_view(request, request_id):
                 # Получаем все договора для данной заявки
                 contracts = Request.objects.get(pk=request_id).contract_set.all()
                 action_info = 'Отсутствуют договора для генерации логинов и паролей'
+                # Синхронизируем локальную базу с данными в БГБиллинге
+                req.sync_contracts_from_bgb()
                 for contract in contracts:
                     contract.create_login()
                     contract.create_password()
