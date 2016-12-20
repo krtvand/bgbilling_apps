@@ -53,15 +53,7 @@ class BGBilling(object):
         """
         :param list_id: ID списка (например справочник типа список "Факультет/Подразделение" - с id 9)
         :param list_elem_id:ID элемента в списке (2 - Аграрный)
-        :return: список из контрактов-словарей типа
-        {'super': False, 'personType': 0, 'id': 10964, 'dependSubList': '',
-        'password': 'nsfk3ssw', 'independSub': False,
-        'paramGroupId': 0, 'status': 0, 'balanceLimit': 0.0,
-        'dependSub': False, 'balanceSubMode': 0, 'hidden': False,
-        'balanceMode': 1, 'dateTo': None, 'dateFrom': '2016-12-08',
-        'groups': 2, 'superCid': 0, 'comment': 'Мочалова Татьяна Ивановна',
-        'statusTimeChange': '2016-12-08', 'titlePatternId': 0,
-        'sub': False, 'title': '0016208'}
+        :return: список из объектов типа Contract
         """
         param = {"method": "contractList",
                  "user": {"user": "icticket", "pswd": "ic05102015"},
@@ -83,7 +75,7 @@ class BGBilling(object):
         if resp['status'] == 'ok':
             for c in resp['data']['return']:
                 if c['id']:
-                    bgb_contract = BGBContract(c['id'])
+                    bgb_contract = BGBContract(str(c['id']))
                     contract_list.append(bgb_contract)
             return contract_list
         else:
@@ -130,11 +122,12 @@ class BGBilling(object):
         #     # TODO Delete contract when create failed
         #     return False
         bgb_contract = self.create_by_template(bgb_contract_template_id)  # Создание договора
-        bgb_contract.set_fullname(fullname=fullname)  # ФИО
-        bgb_contract.setLstParam(pid=9, value_id=department)  # Факультет
+        bgb_contract.set_comment(fullname=fullname)  # ФИО
+        bgb_contract.set_lst_param(pid=9, value_id=department)  # Факультет
         bgb_contract.set_str_param(pid=11, value=position)  # Должность
         bgb_contract.set_str_param(pid=10, value=it_manager)  # Отвественный
         bgb_contract.set_inet_info(login=login, passwd=password)
+        return bgb_contract.cid
 
     def create_by_template(self, template_id):
         """создание договора с использованием шаблона БГБиллинга
@@ -163,11 +156,50 @@ class BGBContract(BGBilling):
     # номер договора
     title = ""
 
-    def __init__(self, cid=0):
+    def __init__(self, cid='0'):
         self.cid = cid
         super().__init__()
 
-    def set_fullname(self, fullname):
+    def get_comment(self):
+        """Получение названия договора. В нашем случае - это ФИО
+
+        :return: string - comment of contract
+        """
+        payload = {
+            'user': self.bgb_login,
+            'pswd': self.bgb_password,
+            'module': 'contract',
+            'action': 'ContractInfo',
+            'cid': self.cid,
+        }
+        r = requests.post(self.bgb_server + "/bgbilling/executer", params=payload)
+        """  Пример XML ответа:
+            <data secret="6561AF7BA41E95F39E468ED1CA1EB14D" status="ok">
+                <contract comment="Т Леонид Петрович" comments="0" date1="23.03.2016" date2=""
+                del="0" fc="0" gr="2" hierarchy="independent" limit="0.00"
+                mode="1" objects="0/0" status="Активен" title="0014927"/>
+                <info>
+                    <groups>
+                        <item id="1" title="Университет"/>
+                    </groups>
+                    <tariff>
+                        <item id="73" title="Университет 10Мб/с"/>
+                    </tariff>
+                    <balance mm="12" summa1="0.00" summa2="0.00" summa3="0.00"
+                    summa4="0.00" summa5="0.00" summa6="0.00" summa7="0.00" yy="2016"/>
+                    <modules>
+                        <item id="8" package="ru.bitel.bgbilling.modules.inet.api.client"
+                        status="" title="Inet"/>
+                    </modules>
+                    <script/>
+                    <plugins/>
+                </info>
+            </data>
+        """
+        root = ET.fromstring(str(r.text))
+        return root.find('contract').get('comment')
+
+    def set_comment(self, fullname):
         """ФИО договора
 
         :param fullname:
@@ -187,6 +219,40 @@ class BGBContract(BGBilling):
             print("Error in method setFio: %s" % root.text)
             raise "Error in method setFio: %s" % root.text
 
+    def get_str_param(self, pid):
+        """Получение значений параметра договора в БГБиллинге
+
+        :param pid: ID параметра договора в БГБиллинге. Например "11" - "Должность"
+        :return: string Значение параметра договора
+        """
+        payload = {
+            'user': self.bgb_login,  # логин
+            'pswd': self.bgb_password,  # пароль
+            'module': 'contract',  # модуль
+            'action': 'ContractParameters',  # действие
+            'cid': self.cid
+        }
+        r = requests.post(self.bgb_server + "/bgbilling/executer", params=payload)
+        """Пример XML ответа
+        <data secret="1F177C3AC7AC80D417006CF3DE4AFD64" status="ok">
+            <parameters>
+                <parameter alwaysVisible="false" history="loopa" pid="13" pt="1" title="№ Общежития" value=""/>
+                <parameter alwaysVisible="false" history="loopa" pid="14" pt="1" title="№ Комнаты" value=""/>
+                <parameter alwaysVisible="false" history="loopa" pid="3" pt="9" title="Телефон абонента" value=""/>
+                <parameter alwaysVisible="false" history="loopa" pid="17" pt="1" title="Email" value=""/>
+                <parameter alwaysVisible="false" history="loopa" pid="4" pt="1" title="Комментарий" value=""/>
+                <parameter alwaysVisible="false" history="loopa" pid="2" pt="2" title="Адрес абонента" value=""/>
+                <parameter alwaysVisible="false" history="loopa" pid="9" pt="7" title="Факультет/Подразделение" value="Аграрный"/>
+                <parameter alwaysVisible="false" history="loopa" pid="10" pt="1" title="Ответственный за IT по факультету" value=""/>
+                <parameter alwaysVisible="false" history="loopa" pid="11" pt="1" title="Должность" value="Профессор кафедры морфологии и физиологии животных "/>
+                <parameter alwaysVisible="false" history="loopa_fade" pid="18" pt="1" title="Размер абонентской платы" value=""/>
+            </parameters>
+            <condel pgid="0"/>
+        </data>
+        """
+        root = ET.fromstring(str(r.text))
+        return root.find('./parameters/parameter[@pid="' + str(pid) + '"]').get('value')
+
     # Установка параметра типа строка(contract_parameter_type_1)принимает id договора,id параметра и значение параметра
     def set_str_param(self, pid, value):
         payload = {
@@ -205,14 +271,13 @@ class BGBContract(BGBilling):
             print("Error in method setStrParam: %s" % root.text)
             raise "Error in method setStrParam: %s" % root.text
 
-    def setLstParam(self, pid, value_id):
+    def set_lst_param(self, pid, value_id):
         """Установка параметра типа List
 
         :param cid: ID договора
         :param pid: ID параметра
         :param value_id: значение параметра
         """
-        print(pid, value_id)
         payload = {
             'user': self.bgb_login,  # логин
             'pswd': self.bgb_password,  # пароль
@@ -231,7 +296,13 @@ class BGBContract(BGBilling):
     def get_inet_info(self):
         """Возвращает данные клиента в модуле Inet
 
-        :return:
+        :return: dictionaty Пример: {   _typeId = 3   _typeTitle = "INTERNET-UNIVER"   _vlan = -1
+           _uname = "220003"   _devOpts = "0"   _devState = 1   _ipResId = 0   _sessCntLimit = 1
+           _cid = 11006   _dateFrom = 2016-12-13 00:00:00+03:00   _passw = "7mgbu"   _scid = 0
+           _title = "220003"   _did = 3   _status = 0   _ipResSubsriptionId = 0   _id = 11802
+           _deviceTitle = "Access+Accounting: IPoE-Univer"   _ifaceId = -1   _accessCode = 0
+           _parentId = 0   _coid = 0   accessCodeTitle = "Ok"   comment = None
+           identifierList = ""   macList = "" }
         """
         url = self.bgb_server + "/bgbilling/executer/ru.bitel.bgbilling.modules.inet.api/8/InetServService?wsdl"
         t = HttpAuthenticated(username=self.bgb_login, password=self.bgb_password)
@@ -287,6 +358,6 @@ class BGBContract(BGBilling):
 
 
 if __name__ == '__main__':
-    contract = BGBContract()
-    contract.get_contracts_by_list_param('9', '22')
+    contract = BGBContract('8936')
+    print(contract.get_str_param(11))
     # contract.setInetInfo(cid='10965', login='qwerasdt', passwd='asdfgddgf'

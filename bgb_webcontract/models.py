@@ -45,24 +45,6 @@ class Request(models.Model):
     department_id = models.ForeignKey(Department, on_delete=models.CASCADE,
                                       verbose_name='Факультет/Подразделение')
 
-    def sync_contracts_from_bgb(self, department_id=None):
-        """Извлечение информации из БГБиллинга о существующих договорах
-        в целях синхронизации данных с локальной базой данных
-
-        Возможны случаи, когда договора создаются напрямую в Биллинге,
-        а для правильного формирования логинов необходимо
-        знать список использованных логинов для факультета,
-        поскольку логин - есть следущее порядковое 6-ти значное число
-
-        """
-        if department_id is None:
-            department_id = self.department_id_id
-        # ID списка (например справочник типа список "Факультет/Подразделение" - с id 9)
-        LIST_ID = 9
-        bgb = BGBilling()
-        contracts = bgb.get_contracts_by_list_param(list_elem_id=department_id, list_id=LIST_ID)
-        for c in contracts:
-            print(c.cid)
 
     def create_csv(self):
         if self.it_manager_email:
@@ -120,11 +102,58 @@ class Contract(models.Model):
     full_name = models.CharField(max_length=200, verbose_name='ФИО без сокращений')
     position = models.CharField(max_length=200, verbose_name='Должность')
     login = models.CharField(max_length=10, blank=True, null=True)
-    password = models.CharField(max_length=10, blank=True)
-    request_id = models.ForeignKey(Request, on_delete=models.CASCADE, blank=True)
+    password = models.CharField(max_length=10, blank=True, null=True)
+    request_id = models.ForeignKey(Request, on_delete=models.CASCADE, null=True, blank=True)
+    bgb_cid = models.CharField(max_length=10, blank=True, null=True, verbose_name='ID в БГБиллинге')
+    department_id = models.ForeignKey(Department, on_delete=models.CASCADE)
 
     def __str__(self):
         return self.full_name
+
+    def create(self, full_name, position, department_id, **kwargs):
+        c = Contract()
+        c.full_name = full_name
+        c.position = position
+        c.department_id_id = department_id
+        if 'bgb_cid' in kwargs:
+            c.bgb_cid = kwargs['bgb_cid']
+        if 'login' in kwargs:
+            c.login = kwargs['login']
+        if 'password' in kwargs:
+            c.password = kwargs['password']
+        if 'request_id' in kwargs:
+            c.request_id = kwargs['request_id']
+        c.save()
+        return c
+
+    def sync_contracts_from_bgb(self, department_id):
+        """Извлечение информации из БГБиллинга о существующих
+        договорах в рамках одного подразделения
+        в целях синхронизации данных с локальной базой данных
+
+        Возможны случаи, когда договора создаются напрямую в Биллинге,
+        а для правильного формирования логинов необходимо
+        знать список использованных логинов для факультета,
+        поскольку логин - есть следущее порядковое 6-ти значное число
+
+        """
+        # ID списка (например справочник типа список "Факультет/Подразделение" - с id 9)
+        LIST_ID = 9
+        # ID параметра договора в БГБиллинге. Например "11" - "Должность"
+        POSITION_PID = 11
+        bgb = BGBilling()
+        bgb_contracts = bgb.get_contracts_by_list_param(list_elem_id=department_id, list_id=LIST_ID)
+        local_contracts = Contract.objects.filter(department_id=department_id)
+        local_cid_list = [c.bgb_cid for c in local_contracts]
+        for c in bgb_contracts:
+            if c.cid not in local_cid_list:
+                inet_info = c.get_inet_info()
+                contract = Contract().create(full_name=c.get_comment(),
+                                             position=c.get_str_param(POSITION_PID),
+                                             department_id=department_id,
+                                             bgb_cid=c.cid,
+                                             login=inet_info['_uname'],
+                                             password=inet_info['_passw'])
 
     def create_login(self):
         """Создание логина для УЖЕ СОХРАНЕННОГО в базе контракта
@@ -134,12 +163,13 @@ class Contract(models.Model):
          для данного подразделения.
         :return: Значение логина
         """
+
         # Сохранен ли объект в базе
         if self.request_id:
             # может у него уже есть логин?
             if self.login:
                 return self.login
-            siblings = Contract.objects.filter(request_id__department_id=self.request_id.department_id,
+            siblings = Contract.objects.filter(department_id=self.department_id,
                                                login__isnull=False)
             login_list = []
             if siblings:
@@ -149,7 +179,7 @@ class Contract(models.Model):
                         self.login = str(sorted(login_list)[-1] + 1)
             else:
                 d_id = self.request_id.department_id_id
-                self.login = str(d_id) + '0001'
+                self.login = str(d_id).zfill(2) + str(1).zfill(4)
             self.save()
             return self.login
         else:

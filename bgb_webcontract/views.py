@@ -5,9 +5,20 @@ from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import render, get_object_or_404
 from django.utils import timezone
 from django.views import generic
+import logging
+import sys
 
 from .models import Request, Contract, Department
 from lib.bgb_api import BGBContract
+
+# Зададим параметры логгирования
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+formatter = logging.Formatter(u'%(filename)s[LINE:%(lineno)d]# '
+                              u'%(levelname)-8s [%(asctime)s]  %(message)s')
+console_handler = logging.StreamHandler(sys.stdout)
+console_handler.setFormatter(formatter)
+logger.addHandler(console_handler)
 
 def index_view(request):
     return HttpResponseRedirect(reverse('bgb_webcontract:request'))
@@ -32,12 +43,18 @@ def request_view(request):
         if contract_formset.is_valid() and request_form.is_valid():
             it_manager_request = request_form.save()
             contracts = contract_formset.save(commit=False)
+            #try:
             # Синхронизируем локальную базу с данными в БГБиллинге
-            it_manager_request.sync_contracts_from_bgb()
+            Contract().sync_contracts_from_bgb(it_manager_request.department_id_id)
             for contract in contracts:
+                contract.department_id = it_manager_request.department_id
                 it_manager_request.contract_set.add(contract, bulk=False)
                 contract.create_login()
                 contract.create_password()
+            #except Exception as e:
+            #    logger.critical('Error in request creating <%s>' % e)
+            #    return HttpResponse('При отправке данных возникла ошибка, '
+            #                        'пожалуйста, обратитель к администратору системы <%s>' % e)
             return HttpResponse('Спасибо за использование нашей системы. '
                                 'Введенные данные в ближайшее время '
                                 'будут проверены администратором, '
@@ -107,7 +124,7 @@ def request_detail_backend_view(request, request_id):
                     for c in contracts:
                         bgb_contract = BGBContract()
                         # Создаем договор в БГБиллинге
-                        bgb_contract.create_university_contract(fullname=c.full_name,
+                        bgb_cid = bgb_contract.create_university_contract(fullname=c.full_name,
                                                                 department=req.department_id.id,
                                                                 it_manager=' '.join([req.it_manager_fullname,
                                                                                      req.it_manager_position,
@@ -115,7 +132,12 @@ def request_detail_backend_view(request, request_id):
                                                                 position=c.position,
                                                                 login=c.login,
                                                                 password=c.password,)
-                    action_info = "Данные сохранены и отправлены в БГБиллинг"
+                        if bgb_cid:
+                            action_info = "Данные сохранены и отправлены в БГБиллинг"
+                            c.bgb_cid = bgb_cid
+                            c.save()
+                        else:
+                            raise Exception('Error when creating contract in BGBilling')
                 except Exception as e:
                     action_info = "При сохранении данных в БГБиллинг возникла ошибка %s" % e
                 request_form = RequestForm(instance=req)
@@ -143,7 +165,7 @@ def request_detail_backend_view(request, request_id):
                 contracts = Request.objects.get(pk=request_id).contract_set.all()
                 action_info = 'Отсутствуют договора для генерации логинов и паролей'
                 # Синхронизируем локальную базу с данными в БГБиллинге
-                req.sync_contracts_from_bgb()
+                Contract().sync_contracts_from_bgb(req.department_id_id)
                 for contract in contracts:
                     contract.create_login()
                     contract.create_password()
