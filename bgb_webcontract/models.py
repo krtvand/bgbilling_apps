@@ -44,6 +44,7 @@ class Request(models.Model):
     rejection_reason = models.CharField(max_length=200, blank=True, default='Заявка не обработана')
     department_id = models.ForeignKey(Department, on_delete=models.CASCADE,
                                       verbose_name='Факультет/Подразделение')
+    generated_file = models.CharField(max_length=100, blank=True, null=True)
 
 
     def create_csv(self):
@@ -93,6 +94,9 @@ class Request(models.Model):
                 ws.write(num + 1, 3, contract.login)
                 ws.write(num + 1, 4, contract.password)
             wb.save(directory + file_name)
+        self.generated_file = directory + file_name
+        self.save()
+        return directory + file_name
 
     def __str__(self):
         return ' '.join([str(self.department_id), self.it_manager_fullname,])

@@ -1,12 +1,13 @@
+# -*- coding: utf-8 -*-
 from django.core.urlresolvers import reverse
 from django.forms import inlineformset_factory
 from django.forms import modelformset_factory, modelform_factory
 from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import render, get_object_or_404
-from django.utils import timezone
-from django.views import generic
+from django.core.mail import send_mail, EmailMessage
 import logging
 import sys
+import os
 
 from .models import Request, Contract, Department
 from lib.bgb_api import BGBContract
@@ -195,6 +196,45 @@ def request_detail_backend_view(request, request_id):
                 # Будем отрисовывать формы с измененными данными
                 request_form = RequestForm(instance=req)
                 contract_formset = ContractInlineFormset(instance=req)
+                return render(request, 'bgb_webcontract/request_detail_backend.html',
+                              {'contract_formset': contract_formset,
+                               'request_form': request_form,
+                               'request': req,
+                               'action_info': action_info})
+            elif 'sendmail' in request.POST:
+                message_subject = 'Список логинов и паролей для доступа к университетской WiFI сети'
+                message_body = 'Список во вложении. Если у вас остались вопросы, напишите на адрес and@mrsu.ru ' \
+                               '\nС уважением, команда Центра Интернет ФГБОУ ВО МГУ им. Н.П.Огарева' \
+                               '\n Телефон технической поддержки: 8 (8342) 777-250'
+                email = EmailMessage(
+                    message_subject,
+                    message_body,
+                    'billing@mrsu.ru',
+                    [req.it_manager_email],
+                    reply_to=['and@mrsu.ru'],
+                )
+                if req.generated_file:
+                    if os.path.exists(req.generated_file):
+                        email.attach_file(req.generated_file)
+                    else:
+                        action_info = 'Файл с логинами и паролями не найден'
+                        return render(request, 'bgb_webcontract/request_detail_backend.html',
+                                      {'contract_formset': contract_formset,
+                                       'request_form': request_form,
+                                       'request': req,
+                                       'action_info': action_info})
+                else:
+                    action_info = 'Файл с логинами и паролями не сгенерирован'
+                    return render(request, 'bgb_webcontract/request_detail_backend.html',
+                                  {'contract_formset': contract_formset,
+                                   'request_form': request_form,
+                                   'request': req,
+                                   'action_info': action_info})
+                try:
+                    email.send()
+                    action_info = 'E-mail успешно отправлен'
+                except Exception as e:
+                    action_info = 'При отправке email возникла ошибка <%s>' % e
                 return render(request, 'bgb_webcontract/request_detail_backend.html',
                               {'contract_formset': contract_formset,
                                'request_form': request_form,
