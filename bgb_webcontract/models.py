@@ -175,8 +175,15 @@ class Contract(models.Model):
             if siblings:
                 for c in siblings:
                     if c.login:
-                        login_list.append(int(c.login))
-                        self.login = str(sorted(login_list)[-1] + 1)
+                        try:
+                            #записываем последние 4 символа из логина
+                            # (начиная с третьего символа) т.к. первые
+                            # два разряда определяют подразделение
+                            login_list.append(int(c.login[2:]))
+                        except Exception as e:
+                            pass
+                d_id = self.request_id.department_id_id
+                self.login = str(d_id).zfill(2) + str(sorted(login_list)[-1] + 1).zfill(4)
             else:
                 d_id = self.request_id.department_id_id
                 self.login = str(d_id).zfill(2) + str(1).zfill(4)
