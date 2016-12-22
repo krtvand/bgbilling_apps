@@ -11,23 +11,47 @@
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap-theme.min.css" integrity="sha384-rHyoN1iRsVXV4nD0JutlnGaslCJuC7uwjduW9SVrLvRYooPp2bWYgmgJQIXwl/Sp" crossorigin="anonymous">
 
 </head>
+
+    <style type="text/css">
+        #id_it_manager_fullname, #id_it_manager_position, #id_it_manager_email, #id_department_id {
+            width: 300px;
+            margin-bottom: 10px;
+            margin-left: 10px;
+        }
+
+    </style>
 <body>
+{% csrf_token %}
+
+
 
     <form action="{% url 'bgb_webcontract:request' %}" method="post">
     {% csrf_token %}
-    <div class="rf alert alert-success">{{ request_form }}</div>
-    {{ department_form }}
-    
-    <div class="table" style="margin-left: 10px;">
+    <div class="rf alert alert-success">
         <table>
-            {{ contract_formset.as_table }}
-        </table> 
+        {{request_form.managment_form}}
+        {% for form in request_form %}
+            <tr>
+                <td>
+                    {{ form.label }}</div>
+                </td>
+                <td>
+                    {{ form }}
+                </td>
+            </tr>
+        {% endfor %}
+        </table>
+    </div>
+   <!-- <div class="rf alert alert-success">{{ request_form }}</div> -->
+    {{ department_form }}
+
+    <div class="table" style="margin-left: 10px; ">
+        <table class="test">
+            {{contract_formset}}
+        </table>
     </div>
 
     <button type="button" value="Add More" id="add_more" class="btn btn-warning" style="margin-left: 10px;">Добавить</button>
-
-    
-    
     <button type="submit" class="btn btn-success">OK</button>
     </form>
    <div id="empty_form" style="display:none; ">
@@ -38,26 +62,36 @@
 
     <script type="text/javascript" language="JavaScript" >
         $('#add_more').click(function() {
-                cloneMore('tbody:last', 'form');
-            });
-        function cloneMore(selector, type) {
+            var total = $('#id_form-TOTAL_FORMS').val();
+            var index = total * 2 - 1;
+            cloneMore('table.test tr:eq(' + index + ')', 'form',total);
+
+        });
+        function cloneMore(selector, type,total) {
             var newElement = $(selector).clone(true);
-            var total = $('#id_' + type + '-TOTAL_FORMS').val();
-            newElement.find(':input').each(function() {
+            var newElementPrev = $(selector).prev().clone(true);
+
+            Insertion(newElementPrev,total)
+            $(selector).after(newElementPrev);
+
+            Insertion(newElement, total)
+            $(newElementPrev).after(newElement);
+            total++;
+            $('#id_' + type + '-TOTAL_FORMS').val(total);
+        }
+
+        function Insertion(selector, total){
+            selector.find(':input').each(function(){
                 var name = $(this).attr('name').replace('-' + (total-1) + '-','-' + total + '-');
                 var id = 'id_' + name;
-
                 $(this).attr({'name': name, 'id': id}).val('').removeAttr('checked');
             });
-            newElement.find('label').each(function() {
+            selector.find('label').each(function(){
                 var newFor = $(this).attr('for').replace('-' + (total-1) + '-','-' + total + '-');
                 $(this).attr('for', newFor);
             });
-            total++;
-            $('#id_' + type + '-TOTAL_FORMS').val(total);
-            $(selector).after(newElement);
-        }   
-        </script>
+        }
+    </script>
 
 </body>
 </html>

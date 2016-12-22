@@ -6,20 +6,56 @@
         {% csrf_token %}
         <div class="rf alert alert-success"> {{ request_form }} </div>
         {{ department_form }}
-        <div class="table table-bordered">
-        <table>
+        <div class="table table-bordered ">
+        <table class="test">
             {{ contract_formset }}
         </table>
         </div>
-
+        <button type="button" value="Add More" id="add_more" class="btn btn-warning">Добавить</button>
         <button class="btn btn-success" type="submit" name="save" value="Сохранить изменения">Сохранить изменения</button>
         <button class="btn btn-primary" type="submit" name="save_to_billing" value="Сохранить в Биллинг">Отправить данные в Биллинг</button>
         <button class="btn btn-info" type="submit" name="generate_login_pasw" value="Сгенерировать логины и сохранить">Сгенерировать логины и сохранить</button>
         <button class="btn btn-info" type="submit" name="create_excel" value="Сгенерировать excel файл">Сгенерировать excel файл</button>
-        <button class="btn btn-info" type="submit" name="sendmail" value="Отправить excel файл на email">Отправить excel файл на email</button>
 
     </form>
     {% if action_info %}
     <div id="action-info">{{ action_info }}</div>
+
     {% endif %}
+<script type="text/javascript" language="JavaScript" >
+        $('#add_more').click(function() {
+            var total = $('#id_contract_set-TOTAL_FORMS').val();
+            var index = total * 5-1;
+            while (index > (total-1)*5-1)
+            {
+                cloneMore('table.test tr:eq(' + index + ')',total);
+                index--;
+            };
+            total++;
+            $('#id_contract_set-TOTAL_FORMS').val(total);
+        });
+
+        function cloneMore(selector,total) {
+            temp = total*5-1;
+            var newElement = $(selector).clone(true);
+            Insertion(newElement,total);
+            $('table.test tr:eq(' + temp + ')').after(newElement);
+        };
+
+        function Insertion(selector, total){
+            selector.find(':input').each(function(){
+                var name = $(this).attr('name').replace('-' + (total-1) + '-','-' + total + '-');
+                var id = 'id_' + name;
+                $(this).attr({'name': name, 'id': id}).val('');
+            });
+            selector.find('label').each(function(){
+                var newFor = $(this).attr('for').replace('-' + (total-1) + '-','-' + total + '-');
+                $(this).attr('for', newFor);
+            });
+            selector.find('checkbox').each(function(){
+                var newFor = $(this).attr('for').replace('-' + (total-1) + '-','-' + total + '-');
+                $(this).attr('for', newFor).attr('checked', 'checked');
+            });
+        }
+    </script>
 {% endblock %}
