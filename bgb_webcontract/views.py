@@ -69,6 +69,7 @@ def request_view(request):
     return render(request, 'bgb_webcontract/request.html',
                   {'request_form' : request_form, 'contract_formset': contract_formset})
 
+
 def request_detail_view(request, request_id):
     req = get_object_or_404(Request, pk=request_id)
     ContractInlineFormset = inlineformset_factory(Request, Contract, extra=0,
@@ -245,3 +246,5 @@ def request_detail_backend_view(request, request_id):
         contract_formset = ContractInlineFormset(instance=req)
     return render(request, 'bgb_webcontract/request_detail_backend.html',
                   {'contract_formset': contract_formset, 'request_form': request_form, 'request': req})
+
+
