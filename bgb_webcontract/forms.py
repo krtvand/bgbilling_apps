@@ -7,4 +7,3 @@ class RequestForm(ModelForm):
     class Meta:
         model = Request
         fields = ['it_manager_fullname', 'it_manager_position', 'it_manager_email', 'department_id']
-

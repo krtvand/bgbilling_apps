@@ -19,4 +19,5 @@ from django.contrib import admin
 urlpatterns = [
     url(r'^bgb_webcontract/', include('bgb_webcontract.urls')),
     url(r'^admin/', admin.site.urls),
+    url(r'^recalculation/', include('recalculation.urls')),
 ]

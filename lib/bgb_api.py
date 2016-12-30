@@ -1,6 +1,6 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-
+import datetime
 import urllib
 import urllib.parse
 import logging
@@ -8,19 +8,20 @@ import sys
 import os
 import json
 import xml.etree.ElementTree as ET
-
 import requests
 import suds
 from suds.client import Client
 from suds.transport.http import HttpAuthenticated
 import configparser
+from array import *
+from calendar import monthrange
 
 
 class BGBilling(object):
     def __init__(self, bgb_server='http://10.60.0.10:8080', bgb_login='icticket', bgb_password='ic05102015'):
         config = configparser.ConfigParser()
         project_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        config_file = project_dir + '/etc/bgbilling_apps.conf'
+        config_file = project_dir + '/etc/example.conf'
         config.read(config_file)
         self.bgb_server = 'http://' + config.get('bgbilling', 'BGBILLING_HOST') + ':' + config.get('bgbilling',
                                                                                                    'BGBILLING_PORT')
@@ -170,7 +171,7 @@ class BGBContract(BGBilling):
             'pswd': self.bgb_password,
             'module': 'contract',
             'action': 'ContractInfo',
-            'cid': self.cid,
+            'cid': 2949,
         }
         r = requests.post(self.bgb_server + "/bgbilling/executer", params=payload)
         """  Пример XML ответа:
@@ -197,7 +198,7 @@ class BGBContract(BGBilling):
             </data>
         """
         root = ET.fromstring(str(r.text))
-        return root.find('contract').get('comment')
+        print (root.find('contract').get('comment'))
 
     def set_comment(self, fullname):
         """ФИО договора
@@ -251,6 +252,7 @@ class BGBContract(BGBilling):
         </data>
         """
         root = ET.fromstring(str(r.text))
+
         return root.find('./parameters/parameter[@pid="' + str(pid) + '"]').get('value')
 
     # Установка параметра типа строка(contract_parameter_type_1)принимает id договора,id параметра и значение параметра
@@ -356,8 +358,139 @@ class BGBContract(BGBilling):
             print('setInetInfo: Error while call getInetInfo()')
             sys.exit(-1)
 
+    def set_status(self, statusId, dateFrom, dateTo, comment):
+        url = self.bgb_server + "/bgbilling/executer/ru.bitel.bgbilling.kernel.contract.status/ContractStatusMonitorService?wsdl"
+        t = HttpAuthenticated(username=self.bgb_login, password=self.bgb_password)
+        client = Client(url, transport=t)
+
+        try:
+            res = client.service.changeContractStatus(self.cid, statusId, dateFrom, dateTo, comment)
+        except suds.WebFault as e:
+            print('Error in SetStatus: %s' % (e.fault.detail.exception._cls))
+            sys.exit(-1)
+        else:
+            print('SetStatus:success')
+
+    def payment_set(self, summ, comment):
+        param_dict = {
+            '_contractId': self.cid,
+            '_date': datetime.datetime.now(),
+            '_sum': summ,
+            '_typeId': 4,
+            '_userId': 1,
+            'comment': comment
+        }
+
+        url = self.bgb_server + "/bgbilling/executer/ru.bitel.bgbilling.kernel.contract.balance/PaymentService?wsdl"
+        t = HttpAuthenticated(username=self.bgb_login, password=self.bgb_password)
+        client = Client(url, transport=t)
+        try:
+            res = client.service.paymentUpdate(param_dict)
+        except suds.WebFault as e:
+            print('Error in SetStatus: %s' % (e.fault.detail.exception._cls))
+            sys.exit(-1)
+        else:
+            print('Counter_set:success')
+
+    def get_pay_id(self):
+        url = self.bgb_server + "/bgbilling/executer/ru.bitel.bgbilling.kernel.contract.balance/PaymentService?wsdl"
+        t = HttpAuthenticated(username=self.bgb_login, password=self.bgb_password)
+        client = Client(url, transport=t)
+        try:
+            res = client.service.paymentList(self.cid,'',1)
+        except suds.WebFault as e:
+            print('Error in SetStatus: %s' % (e.fault.detail.exception._cls))
+            sys.exit(-1)
+        else:
+            print('GetPayId:success')
+            return int(res[0][-1]["_id"])
+
+    def payment_delete(self):
+        url = self.bgb_server + "/bgbilling/executer/ru.bitel.bgbilling.kernel.contract.balance/PaymentService?wsdl"
+        t = HttpAuthenticated(username=self.bgb_login, password=self.bgb_password)
+        client = Client(url, transport=t)
+
+        try:
+            res = client.service.paymentDelete(self.cid, contract.get_pay_id())
+        except suds.WebFault as e:
+            print('Error in SetStatus: %s' % (e.fault.detail.exception._cls))
+            sys.exit(-1)
+        else:
+            print('Counter_delete:success')
+
+
+class BGBRecalculator(BGBContract):
+    def __init__(self, cid):
+        project_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        self.contract = BGBContract(cid)
+        self.tarif = int(self.contract.get_str_param(18))
+
+    def recalculation(self):
+        nowdate = datetime.datetime.now()
+        day = nowdate.day - 1
+        days_in_month = monthrange(nowdate.year, nowdate.month)[1]
+        summ = (self.tarif * day) // days_in_month
+        contract.payment_set(nowdate, summ, "Перерасчет балансного договора")
+        print("recalculation: success")
+
+    def block(self,date_begin,date_end):
+
+        period = date_end - date_begin
+        limit = monthrange(date_begin.year, date_begin.month)[1]
+        if date_begin.month == 12:
+            limit += monthrange(date_end.year, date_end.month)[1] + monthrange(date_end.year, date_end.month + 1)[1]
+        elif date_begin.month == 11:
+            limit += monthrange(date_begin.year, date_begin.month + 1)[1] + monthrange(date_end.year, date_end.month)[1]
+        else:
+            limit += monthrange(date_begin.year, date_begin.month + 1)[1] + monthrange(date_begin.year, date_begin.month + 2)[1]
+
+        if period.days < 10 or period.days > limit:
+            return 'Период приостановки интернета не может быть менше 10 дней или более 3-x месяцев!'
+        if date_begin.day == 1 and date_end.day == monthrange(date_end.year, date_end.month)[1]:
+            comment = "Приостановка договора по заявлению пользователя от " + str(date_end.date())
+            self.contract.set_status(4,date_begin, date_end, comment) # ставить статус "приостановлен" и НИЧЕГО не начислять
+            return (comment + " выполнена")
+        else:
+            if date_begin.month == date_end.month:
+                summ = (self.tarif * (date_end.day - date_begin.day + 1)) // monthrange(date_end.year, date_end.month)[1]
+                self.contract.payment_set(summ, "Начислили по заявлению пользователя")
+                return(str(summ) + " рублей начисленo по заявлению пользователя")
+            else:
+                summ = (self.tarif * (monthrange(date_begin.year, date_begin.month)[1] - date_begin.day + 1)) // monthrange(date_begin.year, date_begin.month)[1]
+                summ += (self.tarif * date_end.day) // monthrange(date_end.year, date_end.month)[1]
+                self.contract.payment_set(summ, "Начислили по заявлению пользователя")
+                return(str(summ) + " рублей начисленo по заявлению пользователя!!")
+            self.contract.set_status(4,date_begin, date_end, "Приостановка договора по заявлению пользователя")
+        # устанавливаем статус "приостановлен"  и начисляем sum
+
+def sbt(title):
+    param = {"method": "contractList",
+             "user": {"user": "icticket", "pswd": "ic05102015"},
+             "params": {
+                        "title": title,
+                        "fc": -1,
+                        "groupMask": 0,
+                        "subContracts": False,
+                        "closed": True,
+                        "hidden": False,
+                        "page": {"pageIndex": 0, "pageSize": 0},
+
+                        }
+             }
+    url = 'http://10.60.0.10:8080/bgbilling/executer/json/ru.bitel.bgbilling.kernel.contract.api/ContractService'
+    r = requests.post(url, json=param)
+    resp = r.json()
+    return resp['data']['return'][0]['id']
+
 
 if __name__ == '__main__':
-    contract = BGBContract('8936')
-    print(contract.get_str_param(11))
-    # contract.setInetInfo(cid='10965', login='qwerasdt', passwd='asdfgddgf'
+    cid = 10904
+    contract = BGBContract(cid)
+    recalculator = BGBRecalculator(cid)
+    ##################print(contract.sbt('0016161'))
+    ##################recalculator.block(datetime.datetime(2016,11,1),datetime.datetime(2016,12,31))
+    ##################recalculator.recalculation()
+    ##################contract.get_pay_id()
+    ##################contract.payment_delete()
+    ##################contract.set_status(4, datetime.datetime(2016,11,26),datetime.datetime(2016,11,28),'привет')
+    ##################contract.payment_set(datetime.datetime.now(), 3333, "дратути!")

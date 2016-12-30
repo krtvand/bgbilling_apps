@@ -1,0 +1,38 @@
+{% extends "recalculation/base.html" %}
+{% block content %}
+
+<div class="row" style="margin-top: 20px;">
+	<div class="col-md-4"></div>
+    <div class="col-md-4">
+		<form action="{% url 'recalculation:recalculate' %}" method="post">
+		    {% csrf_token %}
+	        <table class="table table-bordered">
+		        {{request_form.managment_form}}
+			        {% for form in request_form %}
+			            <tr style="width: 80%">
+			                <td style="width: 50%; ">
+			                    <b>{{ form.label }}</b>
+			                </td>
+			                <td style="width: 50%; text-align: center"> 
+			                    {{ form }}
+			                </td>
+			            </tr>
+			        {% endfor %}
+	        </table>
+	        <button type="submit" class="btn btn-success" style="width: 100%;">OK</button>
+	        {% if message %}
+		        <div class="alert alert-warning alert-dismissible fade in" role="alert" style="margin-top: 20px;"> 
+					<button type="button" class="close" data-dismiss="alert" aria-label="Close">
+						<span aria-hidden="true">&times;</span>
+					</button>
+					<strong>{{message}}</strong>	
+				</div>
+			{% endif %}	
+	    </form>
+    </div>			
+	<div class="col-md-4"></div>
+</div>
+
+{% endblock %}
+
+
