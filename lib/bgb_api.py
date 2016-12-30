@@ -49,7 +49,7 @@ class BGBilling(object):
             for el in values:
                 results[int(el.get('id'))] = el.get('title')
         return results
-
+#1488
     def get_contracts_by_list_param(self, list_id, list_elem_id):
         """
         :param list_id: ID списка (например справочник типа список "Факультет/Подразделение" - с id 9)
@@ -153,9 +153,10 @@ class BGBilling(object):
         raise Exception('Error in creating contract by template')
 
 
+
+
+
 class BGBContract(BGBilling):
-    # номер договора
-    title = ""
 
     def __init__(self, cid='0'):
         self.cid = cid
@@ -171,7 +172,7 @@ class BGBContract(BGBilling):
             'pswd': self.bgb_password,
             'module': 'contract',
             'action': 'ContractInfo',
-            'cid': 2949,
+            'cid': self.cid,
         }
         r = requests.post(self.bgb_server + "/bgbilling/executer", params=payload)
         """  Пример XML ответа:
@@ -418,11 +419,60 @@ class BGBContract(BGBilling):
         else:
             print('Counter_delete:success')
 
+    def update_pay(self,tpid):
+        tarifs = {
+            11: '180',
+            18: '300',
+            17: '500',
+            64: '500',
+            68: '500',
+            77: '400',
+            23: '700',
+            65: '700',
+            69: '700',
+            66: '1200',
+            44: '1200',
+            57: '500',
+            78: '500',
+            79: '700',
+        }
+
+        payload = {
+            'user': self.bgb_login,  # логин
+            'pswd': self.bgb_password,  # пароль
+            'module': 'contract',  # модуль
+            'action': 'UpdateParameterType1',  # действие
+            'cid': self.cid,
+            'pid': 18
+        }
+        value=str(tarifs.get(tpid))
+        r = requests.post(self.bgb_server + "/bgbilling/executer?value=" +
+                          urllib.parse.quote(value),
+                          params=payload)
+        root = ET.fromstring(str(r.text))
+        print(root.attrib['status'])
+
+    def get_tpid(self):
+        payload = {
+            'user': self.bgb_login,  # логин
+            'pswd': self.bgb_password,  # пароль
+            'module': 'contract',  # модуль
+            'action': 'ContractTariffPlans',  # действие
+            'cid': self.cid,
+        }
+        r = requests.post(self.bgb_server + "/bgbilling/executer", params=payload)
+        root = ET.fromstring(str(r.text))
+        _tpid = int(root.find('table').find('data').findall('row')[-1].get('tpid'))
+        self.update_pay(_tpid)
+        print(_tpid)
+
+
 
 class BGBRecalculator(BGBContract):
     def __init__(self, cid):
         project_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         self.contract = BGBContract(cid)
+        self.contract.get_tpid()
         self.tarif = int(self.contract.get_str_param(18))
 
     def recalculation(self):
@@ -487,6 +537,8 @@ if __name__ == '__main__':
     cid = 10904
     contract = BGBContract(cid)
     recalculator = BGBRecalculator(cid)
+    ##################contract.get_tpid()
+    ##################contract.update_pay()
     ##################print(sbt('0016161')[1])
     ##################recalculator.block(datetime.datetime(2016,11,1),datetime.datetime(2016,12,31))
     ##################recalculator.recalculation()
