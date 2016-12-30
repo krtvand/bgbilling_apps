@@ -23,16 +23,18 @@ def recalculate_view(request):
                                                     )
 									)
 	if request.method == 'POST':
-		request_form = RequestForm(request.POST)
-		
+		dicti = request.POST.copy()
+		request_form = RequestForm(dicti)
 		if request_form.is_valid():
-			recalculate_request = request_form.save()
-			title = request.POST.get('contract_number')
-			date_begin = datetime.strptime(request.POST.get('date_begin'), "%Y-%m-%d")
-			date_end = datetime.strptime(request.POST.get('date_end'), "%Y-%m-%d")
-			cid = sbt(title)
-			recalculate = BGBRecalculator(cid)
+			title = dicti.get('contract_number')
+			date_begin = datetime.strptime(dicti.get('date_begin'), "%Y-%m-%d")
+			date_end = datetime.strptime(dicti.get('date_end'), "%Y-%m-%d")
+			res = sbt(title)
+			dicti.update(fullname=res[1])
+			request_form = RequestForm(dicti)
+			recalculate = BGBRecalculator(res[0])
 			message = recalculate.block(date_begin, date_end)
+			recalculate_request = request_form.save()
 			request_form = RequestForm()
 			return render(request, 'recalculation/recalculate.html',
                   {'request_form' : request_form, 'message' : message})
@@ -46,6 +48,8 @@ def recalculate_view(request):
        
 	else:
 		request_form = RequestForm()
+
+	
 		
 		return render(request, 'recalculation/recalculate.html',
                   {'request_form' : request_form})

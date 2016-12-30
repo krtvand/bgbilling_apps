@@ -1,23 +1,51 @@
 {% extends "recalculation/base.html" %}
 {% block content %}
-
+<style type="text/css">
+	#id_comment, #id_contract_number, #id_date_end, #id_date_begin{
+		width: 200px;
+	}
+</style>
 <div class="row" style="margin-top: 20px;">
 	<div class="col-md-4"></div>
     <div class="col-md-4">
 		<form action="{% url 'recalculation:recalculate' %}" method="post">
 		    {% csrf_token %}
-	        <table class="table table-bordered">
-		        {{request_form.managment_form}}
-			        {% for form in request_form %}
-			            <tr style="width: 80%">
-			                <td style="width: 50%; ">
-			                    <b>{{ form.label }}</b>
-			                </td>
-			                <td style="width: 50%; text-align: center"> 
-			                    {{ form }}
-			                </td>
-			            </tr>
-			        {% endfor %}
+	        <table class="table table-bordered">  		        
+	            <tr style="width: 80%">
+	                <td style="width: 50%; ">
+	                    <b>{{ request_form.contract_number.label }}</b>
+	                </td>
+	                <td style="width: 50%; text-align: center"> 
+	                    {{ request_form.contract_number }}
+	                </td>
+	            </tr>
+
+	            <tr style="width: 80%">
+	                <td style="width: 50%; ">
+	                    <b>{{ request_form.date_begin.label }}</b>
+	                </td>
+	                <td style="width: 50%; text-align: center"> 
+	                    {{ request_form.date_begin }}
+	                </td>
+	            </tr>
+
+	            <tr style="width: 80%">
+	                <td style="width: 50%; ">
+	                    <b>{{ request_form.date_end.label }}</b>
+	                </td>
+	                <td style="width: 50%; text-align: center"> 
+	                    {{ request_form.date_end }}
+	                </td>
+	            </tr>
+
+	            <tr style="width: 80%">
+	                <td style="width: 50%; ">
+	                    <b>{{ request_form.comment.label }}</b>
+	                </td>
+	                <td style="width: 50%; text-align: center"> 
+	                    {{ request_form.comment }}
+	                </td>
+	            </tr>
 	        </table>
 	        <button type="submit" class="btn btn-success" style="width: 100%;">OK</button>
 	        {% if message %}
