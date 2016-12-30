@@ -8,6 +8,7 @@ from django.core.mail import send_mail, EmailMessage
 import logging
 import sys
 import os
+import string
 from datetime import datetime, date, time
 
 from .models import Request
@@ -33,7 +34,7 @@ def recalculate_view(request):
 			dicti.update(fullname=res[1])
 			request_form = RequestForm(dicti)
 			recalculate = BGBRecalculator(res[0])
-			message = recalculate.block(date_begin, date_end)
+			message = recalculate.block(date_begin, date_end) + " " + res[1]
 			recalculate_request = request_form.save()
 			request_form = RequestForm()
 			return render(request, 'recalculation/recalculate.html',
