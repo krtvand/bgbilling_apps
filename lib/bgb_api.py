@@ -480,14 +480,14 @@ def sbt(title):
     url = 'http://10.60.0.10:8080/bgbilling/executer/json/ru.bitel.bgbilling.kernel.contract.api/ContractService'
     r = requests.post(url, json=param)
     resp = r.json()
-    return resp['data']['return'][0]['id']
+    return resp['data']['return'][0]['id'], resp['data']['return'][0]['comment']
 
 
 if __name__ == '__main__':
     cid = 10904
     contract = BGBContract(cid)
     recalculator = BGBRecalculator(cid)
-    ##################print(contract.sbt('0016161'))
+    ##################print(sbt('0016161')[1])
     ##################recalculator.block(datetime.datetime(2016,11,1),datetime.datetime(2016,12,31))
     ##################recalculator.recalculation()
     ##################contract.get_pay_id()
