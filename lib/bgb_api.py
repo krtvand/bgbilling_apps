@@ -517,7 +517,7 @@ class BGBRecalculator(BGBContract):
 def sbt(title):
     config = configparser.ConfigParser()
     project_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    config_file = project_dir + '/etc/example.conf'
+    config_file = project_dir + '/etc/bgbilling_apps.conf'
     config.read(config_file)
     bgb_server = 'http://' + config.get('bgbilling', 'BGBILLING_HOST') + ':' + config.get('bgbilling',
                                                                                                'BGBILLING_PORT')
