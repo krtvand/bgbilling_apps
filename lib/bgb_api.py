@@ -494,7 +494,7 @@ class BGBRecalculator(BGBContract):
         else:
             limit += monthrange(date_begin.year, date_begin.month + 1)[1] + monthrange(date_begin.year, date_begin.month + 2)[1]
 
-        if period.days < 10 or period.days > limit:
+        if period.days < 9 or period.days > limit:
             return 'Период приостановки интернета не может быть менше 10 дней или более 3-x месяцев!'
         if date_begin.day == 1 and date_end.day == monthrange(date_end.year, date_end.month)[1]:
             comment = "Приостановка договора по заявлению пользователя от " + str(date_end.date())
