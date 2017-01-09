@@ -24,6 +24,7 @@ def recalculate_view(request):
                                                     )
 									)
 	if request.method == 'POST':
+
 		dicti = request.POST.copy()
 		request_form = RequestForm(dicti)
 		if request_form.is_valid():
