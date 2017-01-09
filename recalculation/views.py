@@ -33,9 +33,10 @@ def recalculate_view(request):
 			date_end = datetime.strptime(dicti.get('date_end'), "%Y-%m-%d")
 			res = sbt(title)
 			dicti.update(fullname=res[1])
-			request_form = RequestForm(dicti)
 			recalculate = BGBRecalculator(res[0])
-			message = recalculate.block(date_begin, date_end) + " " + res[1]
+			message = recalculate.block(date_begin, date_end, dicti.get('comment')) + " " + res[1]
+			dicti.update(comment=message)
+			request_form = RequestForm(dicti)
 			recalculate_request = request_form.save()
 			request_form = RequestForm()
 			return render(request, 'recalculation/recalculate.html',
