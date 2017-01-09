@@ -483,14 +483,15 @@ class BGBRecalculator(BGBContract):
         contract.payment_set(nowdate, summ, "Перерасчет балансного договора")
         print("recalculation: success")
 
-    def block(self,date_begin,date_end):
+    def block(self,date_begin,date_end,comment):
 
-        period = date_end - date_begin
+        period = date_end - date_begin + datetime.timedelta(days=1)
+
         limit = monthrange(date_begin.year, date_begin.month)[1]
         if date_begin.month == 12:
-            limit += monthrange(date_end.year, date_end.month)[1] + monthrange(date_end.year, date_end.month + 1)[1]
+            limit += monthrange(date_end.year, date_end.month)[1] + monthrange(date_end.year, date_end.month)[1]
         elif date_begin.month == 11:
-            limit += monthrange(date_begin.year, date_begin.month + 1)[1] + monthrange(date_end.year, date_end.month)[1]
+            limit += monthrange(date_begin.year, date_begin.month + 1)[1] + monthrange(date_end.year, date_end.month + 1)[1]
         else:
             limit += monthrange(date_begin.year, date_begin.month + 1)[1] + monthrange(date_begin.year, date_begin.month + 2)[1]
 
@@ -503,14 +504,14 @@ class BGBRecalculator(BGBContract):
         else:
             if date_begin.month == date_end.month:
                 summ = (self.tarif * (date_end.day - date_begin.day + 1)) // monthrange(date_end.year, date_end.month)[1]
-                self.contract.payment_set(summ, "Начислили по заявлению пользователя")
-                return(str(summ) + " рублей начисленo по заявлению пользователя")
+
             else:
                 summ = (self.tarif * (monthrange(date_begin.year, date_begin.month)[1] - date_begin.day + 1)) // monthrange(date_begin.year, date_begin.month)[1]
                 summ += (self.tarif * date_end.day) // monthrange(date_end.year, date_end.month)[1]
-                self.contract.payment_set(summ, "Начислили по заявлению пользователя")
-                return(str(summ) + " рублей начисленo по заявлению пользователя!!")
-            self.contract.set_status(4,date_begin, date_end, "Приостановка договора по заявлению пользователя")
+            self.contract.payment_set(summ, "Начислили по заявлению пользователя")
+            self.contract.set_status(4,date_begin, date_end, comment)
+            return(str(summ) + " рублей начислено по заявлению пользователя.")
+
         # устанавливаем статус "приостановлен"  и начисляем sum
 
 def sbt(title):
@@ -534,15 +535,15 @@ def sbt(title):
 
 
 if __name__ == '__main__':
-    cid = 10904
+    cid = 2949
     contract = BGBContract(cid)
     recalculator = BGBRecalculator(cid)
     ##################contract.get_tpid()
     ##################contract.update_pay()
     ##################print(sbt('0016161')[1])
-    ##################recalculator.block(datetime.datetime(2016,11,1),datetime.datetime(2016,12,31))
+    recalculator.block(datetime.datetime(2016,11,1),datetime.datetime(2016,12,31))
     ##################recalculator.recalculation()
     ##################contract.get_pay_id()
     ##################contract.payment_delete()
-    ##################contract.set_status(4, datetime.datetime(2016,11,26),datetime.datetime(2016,11,28),'привет')
+    #recalculator.set_status(4, datetime.datetime(2016,11,26),datetime.datetime(2016,11,28),'привет')
     ##################contract.payment_set(datetime.datetime.now(), 3333, "дратути!")
