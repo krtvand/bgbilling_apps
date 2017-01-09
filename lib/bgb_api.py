@@ -515,6 +515,12 @@ class BGBRecalculator(BGBContract):
         # устанавливаем статус "приостановлен"  и начисляем sum
 
 def sbt(title):
+    config = configparser.ConfigParser()
+    project_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    config_file = project_dir + '/etc/example.conf'
+    config.read(config_file)
+    bgb_server = 'http://' + config.get('bgbilling', 'BGBILLING_HOST') + ':' + config.get('bgbilling',
+                                                                                               'BGBILLING_PORT')
     param = {"method": "contractList",
              "user": {"user": "icticket", "pswd": "ic05102015"},
              "params": {
@@ -528,7 +534,7 @@ def sbt(title):
 
                         }
              }
-    url = 'http://10.60.0.10:8080/bgbilling/executer/json/ru.bitel.bgbilling.kernel.contract.api/ContractService'
+    url = bgb_server + '/bgbilling/executer/json/ru.bitel.bgbilling.kernel.contract.api/ContractService'
     r = requests.post(url, json=param)
     resp = r.json()
     return resp['data']['return'][0]['id'], resp['data']['return'][0]['comment']
@@ -537,11 +543,11 @@ def sbt(title):
 if __name__ == '__main__':
     cid = 2949
     contract = BGBContract(cid)
-    recalculator = BGBRecalculator(cid)
+    #recalculator = BGBRecalculator(cid)
     ##################contract.get_tpid()
     ##################contract.update_pay()
-    ##################print(sbt('0016161')[1])
-    recalculator.block(datetime.datetime(2016,11,1),datetime.datetime(2016,12,31))
+    print(sbt('0016161')[1])
+    #recalculator.block(datetime.datetime(2016,11,1),datetime.datetime(2016,12,31))
     ##################recalculator.recalculation()
     ##################contract.get_pay_id()
     ##################contract.payment_delete()
