@@ -124,7 +124,7 @@ class BGBilling(object):
         #     return False
         bgb_contract = self.create_by_template(bgb_contract_template_id)  # Создание договора
         bgb_contract.set_comment(fullname=fullname)  # ФИО
-        bgb_contract.set_lst_param(pid=9, value_id=department)  # Факультет
+        bgb_contract.set_list_param(pid=9, value_id=department)  # Факультет
         bgb_contract.set_str_param(pid=11, value=position)  # Должность
         bgb_contract.set_str_param(pid=10, value=it_manager)  # Отвественный
         bgb_contract.set_inet_info(login=login, passwd=password)
@@ -199,7 +199,7 @@ class BGBContract(BGBilling):
             </data>
         """
         root = ET.fromstring(str(r.text))
-        print (root.find('contract').get('comment'))
+        return root.find('contract').get('comment')
 
     def set_comment(self, fullname):
         """ФИО договора
@@ -274,7 +274,7 @@ class BGBContract(BGBilling):
             print("Error in method setStrParam: %s" % root.text)
             raise "Error in method setStrParam: %s" % root.text
 
-    def set_lst_param(self, pid, value_id):
+    def set_list_param(self, pid, value_id):
         """Установка параметра типа List
 
         :param cid: ID договора
