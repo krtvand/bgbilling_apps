@@ -577,4 +577,4 @@ if __name__ == '__main__':
     ##################contract.get_pay_id()
     ##################contract.payment_delete()
     #recalculator.set_status(4, datetime.datetime(2016,11,26),datetime.datetime(2016,11,28),'привет')
-    ##################contract.payment_set(datetime.datetime.now(), 3333, "дратути!")
+    #contract.payment_set(datetime.datetime.now(), 3333, "дратути!")
