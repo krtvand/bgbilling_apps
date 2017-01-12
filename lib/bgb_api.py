@@ -517,18 +517,13 @@ class BGBRecalculator(BGBContract):
                 print('-3-')
                 summ = (self.tarif * (date_end.day - date_begin.day + 1)) // monthrange(date_end.year, date_end.month)[1]
 
-            elif date_begin.day != 1 and date_end.day != monthrange(date_end.year, date_end.month)[1] and submonth>1:
-                day_count = monthrange(date_begin.year, date_begin.month)[1] - date_begin.day + date_end.day
-                summ = self.tarif * day_count // monthrange(date_end.year, date_end.month)[1]
-                print(day_count)
-                print('-4-')
             elif date_begin.day == 1 and date_begin.month != date_end.month:
-                day_count = date_end.day
+                day_count = date_end.day+1
                 summ = self.tarif * day_count // monthrange(date_end.year, date_end.month)[1]
                 print(day_count)
                 print('-5-')
             elif date_end.day == monthrange(date_end.year, date_end.month)[1] and date_begin.month != date_end.month:
-                day_count =monthrange(date_begin.year, date_begin.month)[1] - date_begin.day
+                day_count =monthrange(date_begin.year, date_begin.month)[1] - date_begin.day+1
                 summ = self.tarif * day_count // monthrange(date_end.year, date_end.month)[1]
                 print(day_count)
                 print('-6-')
@@ -538,7 +533,8 @@ class BGBRecalculator(BGBContract):
                 summ += (self.tarif * date_end.day) // monthrange(date_end.year, date_end.month)[1]
             self.contract.payment_set(summ, "Начислили по заявлению пользователя")
             self.contract.set_status(4,date_begin, date_end, comment)
-            return(str(summ) + " рублей начислено по заявлению пользователя.")
+            comment = str(date_end.date())
+            return(str(summ) + " рублей начислено по заявлению пользователя от " + comment)
 
         # устанавливаем статус "приостановлен"  и начисляем sum
 
