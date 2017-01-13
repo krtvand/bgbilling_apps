@@ -150,8 +150,13 @@ def request_detail_backend_view(request, request_id):
                                'request': req,
                                'action_info': action_info})
             elif 'save' in request.POST:
-                contract_formset.save()
+                contracts = contract_formset.save(commit=False)
                 request_form.save()
+                for contract in contracts:
+                    contract.department_id = req.department_id
+                    req.contract_set.add(contract, bulk=False)
+                    contract.create_login()
+                    contract.create_password()
                 action_info = 'Изменения сохранены'
                 request_form = RequestForm(instance=req)
                 contract_formset = ContractInlineFormset(instance=req)
@@ -162,13 +167,15 @@ def request_detail_backend_view(request, request_id):
                                'action_info': action_info})
             elif 'generate_login_pasw' in request.POST:
                 # Сохраняем данные из POST
-                contract_formset.save()
+                contracts = contract_formset.save(commit=False)
                 # Получаем все договора для данной заявки
-                contracts = Request.objects.get(pk=request_id).contract_set.all()
+                # contracts = Request.objects.get(pk=request_id).contract_set.all()
                 action_info = 'Отсутствуют договора для генерации логинов и паролей'
                 # Синхронизируем локальную базу с данными в БГБиллинге
                 Contract().sync_contracts_from_bgb(req.department_id_id)
                 for contract in contracts:
+                    contract.department_id = req.department_id
+                    req.contract_set.add(contract, bulk=False)
                     contract.create_login()
                     contract.create_password()
                     if contract.login:
