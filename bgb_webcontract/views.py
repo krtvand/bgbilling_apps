@@ -266,18 +266,21 @@ def statistics_view(request):
     """
     errors = []
     ccount_per_dep = {}
+    total_contracts = 0
     # Синхронизируем с биллингом список подразделений
     models.Department().synchronize_with_bgb()
     # Подсчитываем количество договоров по подразделениям
     for dep in models.Department.objects.all():
-        # try:
-        #     models.Contract.sync_contracts_from_bgb(department_id=dep.id)
-        # except Exception as e:
-        #     errors.append(e)
-        #     pass
+        try:
+            models.Contract.sync_contracts_from_bgb(department_id=dep.id)
+        except Exception as e:
+            errors.append(e)
+            pass
         models.Contract.sync_contracts_from_bgb(department_id=dep.id)
         ccount = len(models.Contract.objects.filter(department_id=dep.id))
         ccount_per_dep[dep.name] = ccount
+        total_contracts += ccount
     kwargs = {'ccount_per_dep': ccount_per_dep,
-              'errors': errors}
+              'errors': errors,
+              'total_contracts': total_contracts}
     return render(request, 'bgb_webcontract/backend_statistics.html', kwargs)

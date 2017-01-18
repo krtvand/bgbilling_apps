@@ -2,6 +2,7 @@
 {% block title %}BGB Webcontract backend{% endblock %}
 {% block content %}
     <div id="count_per_department_info">
+        <p>Распределение служебных договоров по факультетам/подразделениям:</p>
         <table>
             <tbody>
                 <tr>
@@ -14,6 +15,10 @@
                     <td>{{ ccount }}</td>
                 </tr>
                 {% endfor %}
+                <tr>
+                    <td>Общее количество служебных договоров:</td>
+                    <td>{{ total_contracts }}</td>
+                </tr>
             </tbody>
         </table>
     </div>
