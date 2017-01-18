@@ -130,7 +130,8 @@ class Contract(models.Model):
         c.save()
         return c
 
-    def sync_contracts_from_bgb(self, department_id):
+    @staticmethod
+    def sync_contracts_from_bgb(department_id):
         """Извлечение информации из БГБиллинга о существующих
         договорах в рамках одного подразделения
         в целях синхронизации данных с локальной базой данных

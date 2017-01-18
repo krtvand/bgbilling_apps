@@ -1,0 +1,26 @@
+{% extends "bgb_webcontract/backend_base.html" %}
+{% block title %}BGB Webcontract backend{% endblock %}
+{% block content %}
+    <div id="count_per_department_info">
+        <table>
+            <tbody>
+                <tr>
+                    <td>Подразделение</td>
+                    <td>Количество договоров</td>
+                </tr>
+                {% for dep, ccount in ccount_per_dep.items %}
+                <tr>
+                    <td>{{ dep }}</td>
+                    <td>{{ ccount }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% if errors %}
+        <div id="error">
+            <p>При получении данных обнаружены ошибки:</p>
+            <p>{{ errors }}</p>
+        </div>
+    {% endif %}
+{% endblock %}

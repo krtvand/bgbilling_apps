@@ -9,7 +9,7 @@ import logging
 import sys
 import os
 
-from .models import Request, Contract, Department
+from . import models
 from lib.bgb_api import BGBContract
 
 # Зададим параметры логгирования
@@ -21,38 +21,40 @@ console_handler = logging.StreamHandler(sys.stdout)
 console_handler.setFormatter(formatter)
 logger.addHandler(console_handler)
 
+
 def index_view(request):
     return HttpResponseRedirect(reverse('bgb_webcontract:request'))
 
+
 def backend_view(request):
-    new_request_list = Request.objects.filter(accepted=False).order_by('created_date')
-    latest_request_list = Request.objects.filter(accepted=True).order_by('created_date')
+    new_request_list = models.Request.objects.filter(accepted=False).order_by('created_date')
+    latest_request_list = models.Request.objects.filter(accepted=True).order_by('created_date')
     return render(request, 'bgb_webcontract/backend.html',
                   {'new_request_list': new_request_list,
                    'latest_request_list': latest_request_list})
 
 
 def request_view(request):
-    ContractFormset = modelformset_factory(Contract, fields=('full_name', 'position'))
-    RequestForm = modelform_factory(Request, fields=('it_manager_fullname',
-                                                          'it_manager_position',
-                                                          'it_manager_email',
-                                                          'department_id'))
+    ContractFormset = modelformset_factory(models.Contract, fields=('full_name', 'position'))
+    RequestForm = modelform_factory(models.Request, fields=('it_manager_fullname',
+                                                            'it_manager_position',
+                                                            'it_manager_email',
+                                                            'department_id'))
     if request.method == 'POST':
         request_form = RequestForm(request.POST)
         contract_formset = ContractFormset(request.POST)
         if contract_formset.is_valid() and request_form.is_valid():
             it_manager_request = request_form.save()
             contracts = contract_formset.save(commit=False)
-            #try:
+            # try:
             # Синхронизируем локальную базу с данными в БГБиллинге
-            Contract().sync_contracts_from_bgb(it_manager_request.department_id_id)
+            models.Contract.sync_contracts_from_bgb(it_manager_request.department_id_id)
             for contract in contracts:
                 contract.department_id = it_manager_request.department_id
                 it_manager_request.contract_set.add(contract, bulk=False)
                 contract.create_login()
                 contract.create_password()
-            #except Exception as e:
+            # except Exception as e:
             #    logger.critical('Error in request creating <%s>' % e)
             #    return HttpResponse('При отправке данных возникла ошибка, '
             #                        'пожалуйста, обратитель к администратору системы <%s>' % e)
@@ -62,22 +64,22 @@ def request_view(request):
                                 'после чего на указанный e-mail '
                                 'будет отправлен список логинов и паролей')
     else:
-        dep = Department()
+        dep = models.Department()
         dep.synchronize_with_bgb()
-        contract_formset = ContractFormset(queryset=Contract.objects.none())
+        contract_formset = ContractFormset(queryset=models.Contract.objects.none())
         request_form = RequestForm()
     return render(request, 'bgb_webcontract/request.html',
-                  {'request_form' : request_form, 'contract_formset': contract_formset})
+                  {'request_form': request_form, 'contract_formset': contract_formset})
 
 
 def request_detail_view(request, request_id):
-    req = get_object_or_404(Request, pk=request_id)
-    ContractInlineFormset = inlineformset_factory(Request, Contract, extra=0,
+    req = get_object_or_404(models.Request, pk=request_id)
+    ContractInlineFormset = inlineformset_factory(models.Request, models.Contract, extra=0,
                                                   fields=('full_name', 'position'))
-    RequestForm = modelform_factory(Request, fields=('it_manager_fullname',
-                                                     'it_manager_position',
-                                                     'it_manager_email',
-                                                     'department_id'))
+    RequestForm = modelform_factory(models.Request, fields=('it_manager_fullname',
+                                                            'it_manager_position',
+                                                            'it_manager_email',
+                                                            'department_id'))
     if request.method == 'POST':
         request_form = RequestForm(request.POST, instance=req)
         contract_formset = ContractInlineFormset(request.POST, instance=req)
@@ -89,7 +91,7 @@ def request_detail_view(request, request_id):
                 contract.create_password()
             action_info = 'Изменения сохранены'
             return render(request, 'bgb_webcontract/request_detail.html',
-                          {'contract_formset': contract_formset, 
+                          {'contract_formset': contract_formset,
                            'request_form': request_form,
                            'request': req,
                            'action_info': action_info})
@@ -97,18 +99,19 @@ def request_detail_view(request, request_id):
         request_form = RequestForm(instance=req)
         contract_formset = ContractInlineFormset(instance=req)
     return render(request, 'bgb_webcontract/request_detail.html',
-                              {'contract_formset': contract_formset,
-                               'request_form': request_form, 'request': req})
+                  {'contract_formset': contract_formset,
+                   'request_form': request_form, 'request': req})
+
 
 def request_detail_backend_view(request, request_id):
-    req = get_object_or_404(Request, pk=request_id)
-    ContractInlineFormset = inlineformset_factory(Request, Contract, extra = 0,
+    req = get_object_or_404(models.Request, pk=request_id)
+    ContractInlineFormset = inlineformset_factory(models.Request, models.Contract, extra=0,
                                                   fields=('full_name', 'position', 'login', 'password'))
-    RequestForm = modelform_factory(Request, fields=('it_manager_fullname',
-                                                     'it_manager_position',
-                                                     'it_manager_email',
-                                                     'department_id',
-                                                     'rejection_reason'))
+    RequestForm = modelform_factory(models.Request, fields=('it_manager_fullname',
+                                                            'it_manager_position',
+                                                            'it_manager_email',
+                                                            'department_id',
+                                                            'rejection_reason'))
     if request.method == 'POST':
         request_form = RequestForm(request.POST, instance=req)
         contract_formset = ContractInlineFormset(request.POST, instance=req)
@@ -120,20 +123,20 @@ def request_detail_backend_view(request, request_id):
                 req = request_form.save()
                 contract_formset.save()
                 # Получаем все договора для данной заявки (а не только из POST)
-                contracts = Request.objects.get(pk=request_id).contract_set.all()
+                contracts = models.Request.objects.get(pk=request_id).contract_set.all()
                 # Формируем csv для отправки данных заявителю
                 try:
                     for c in contracts:
                         bgb_contract = BGBContract()
                         # Создаем договор в БГБиллинге
                         bgb_cid = bgb_contract.create_university_contract(fullname=c.full_name,
-                                                                department=req.department_id.id,
-                                                                it_manager=' '.join([req.it_manager_fullname,
-                                                                                     req.it_manager_position,
-                                                                                     req.it_manager_email]),
-                                                                position=c.position,
-                                                                login=c.login,
-                                                                password=c.password,)
+                                                                          department=req.department_id.id,
+                                                                          it_manager=' '.join([req.it_manager_fullname,
+                                                                                               req.it_manager_position,
+                                                                                               req.it_manager_email]),
+                                                                          position=c.position,
+                                                                          login=c.login,
+                                                                          password=c.password, )
                         if bgb_cid:
                             action_info = "Данные сохранены и отправлены в БГБиллинг"
                             c.bgb_cid = bgb_cid
@@ -172,7 +175,7 @@ def request_detail_backend_view(request, request_id):
                 # contracts = Request.objects.get(pk=request_id).contract_set.all()
                 action_info = 'Отсутствуют договора для генерации логинов и паролей'
                 # Синхронизируем локальную базу с данными в БГБиллинге
-                Contract().sync_contracts_from_bgb(req.department_id_id)
+                models.Contract.sync_contracts_from_bgb(req.department_id_id)
                 for contract in contracts:
                     contract.department_id = req.department_id
                     req.contract_set.add(contract, bulk=False)
@@ -194,7 +197,7 @@ def request_detail_backend_view(request, request_id):
                 # Сохраняем данные из POST
                 contract_formset.save()
                 # Получаем все договора для данной заявки
-                contracts = Request.objects.get(pk=request_id).contract_set.all()
+                contracts = models.Request.objects.get(pk=request_id).contract_set.all()
                 action_info = 'Отсутствуют договора для создания excel файла'
                 try:
                     req.create_excel()
@@ -255,3 +258,26 @@ def request_detail_backend_view(request, request_id):
                   {'contract_formset': contract_formset, 'request_form': request_form, 'request': req})
 
 
+def statistics_view(request):
+    """Статистика по университеским договорам
+
+    :param request:
+    :return:
+    """
+    errors = []
+    ccount_per_dep = {}
+    # Синхронизируем с биллингом список подразделений
+    models.Department().synchronize_with_bgb()
+    # Подсчитываем количество договоров по подразделениям
+    for dep in models.Department.objects.all():
+        # try:
+        #     models.Contract.sync_contracts_from_bgb(department_id=dep.id)
+        # except Exception as e:
+        #     errors.append(e)
+        #     pass
+        models.Contract.sync_contracts_from_bgb(department_id=dep.id)
+        ccount = len(models.Contract.objects.filter(department_id=dep.id))
+        ccount_per_dep[dep.name] = ccount
+    kwargs = {'ccount_per_dep': ccount_per_dep,
+              'errors': errors}
+    return render(request, 'bgb_webcontract/backend_statistics.html', kwargs)

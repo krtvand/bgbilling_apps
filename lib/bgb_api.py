@@ -162,6 +162,12 @@ class BGBContract(BGBilling):
         self.cid = cid
         super().__init__()
 
+    def __str__(self):
+        return '<BGBContract {}>'.format(self.cid)
+
+    def __repr__(self):
+        return '<BGBContract {}>'.format(self.cid)
+
     def get_comment(self):
         """Получение названия договора. В нашем случае - это ФИО
 
