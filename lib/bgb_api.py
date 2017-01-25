@@ -1,4 +1,4 @@
-import datetime
+import datetime 
 import urllib
 import urllib.parse
 import sys
@@ -655,6 +655,7 @@ if __name__ == '__main__':
     cid = 10904
     contract = BGBContract(cid)
     recalculator = BGBRecalculator(cid)
+    print(datetime.now().date())
     #contract.get_tpid()
     ##################contract.update_pay()
     #print(sbt('0016161')[1])

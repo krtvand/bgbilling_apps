@@ -24,9 +24,11 @@ def recalculate_view(request):
                                                     )
 									)
 	if request.method == 'POST':
-
 		dicti = request.POST.copy()
+		dicti.update(comment='по заявлению от ' + str(dicti.get('picker')))
+
 		request_form = RequestForm(dicti)
+
 		if request_form.is_valid():
 			title = dicti.get('contract_number')
 			date_begin = datetime.strptime(dicti.get('date_begin'), "%Y-%m-%d")
