@@ -1,4 +1,4 @@
-import datetime 
+import datetime
 import urllib
 import urllib.parse
 import sys
@@ -190,7 +190,7 @@ class BGBContract(BGBilling):
             </data>
         """
         root = ET.fromstring(str(r.text))
-        print(root.find('contract').get('comment'))
+        return root.find('contract').get('comment')
 
     def set_comment(self, fullname):
         """ФИО договора
