@@ -1,25 +1,19 @@
-#!/usr/bin/python
-# -*- coding: utf-8 -*-
 import datetime
 import urllib
 import urllib.parse
-import logging
 import sys
 import os
-import json
 import xml.etree.ElementTree as ET
-import requests
+import configparser
+from calendar import monthrange
 import suds
 from suds.client import Client
 from suds.transport.http import HttpAuthenticated
-import configparser
-from array import *
-from calendar import monthrange
-
+import requests
 
 
 class BGBilling(object):
-    def __init__(self, bgb_server='http://10.60.0.10:8080', bgb_login='icticket', bgb_password='ic05102015'):
+    def __init__(self):
         config = configparser.ConfigParser()
         project_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         config_file = project_dir + '/etc/bgbilling_apps.conf'
@@ -67,9 +61,9 @@ class BGBilling(object):
                             "page": {"pageIndex": 0, "pageSize": 0},
                             "entityFilter": [{"type": "List",
                                               "entitySpecAttrIds": [list_elem_id], "value": list_id
-                                              }]
-                            }
-                 }
+                                             }]
+                           }
+                }
         url = self.bgb_server + '/bgbilling/executer/json/ru.bitel.bgbilling.kernel.contract.api/ContractService'
         r = requests.post(url, json=param)
         resp = r.json()
@@ -152,10 +146,6 @@ class BGBilling(object):
             bgb_contract = BGBContract(child.attrib['id'])
             return bgb_contract
         raise Exception('Error in creating contract by template')
-
-
-
-
 
 class BGBContract(BGBilling):
 
@@ -365,8 +355,17 @@ class BGBContract(BGBilling):
         else:
             print('setInetInfo: Error while call getInetInfo()')
             sys.exit(-1)
+            ####################################################
+    def set_status(self, statusId, dateFrom, dateTo, comment):
+        """Функция устанавливает статуса договора
 
-    def set_status(self, statusId, dateFrom, dateTo, comment): #установка статуса договора. наприм. "приостановлен"
+             Входные параметры:
+                statusId - Id статуса договора
+                dateFrom - дата начала действия нового статуса договора в формате datetime
+                dateTo - дата окончания действия нового статуса договора в формате datetime
+                comment - комментарий оператора
+             Результат работы функции - изменение статуса договора в BGBilling
+        """
         url = self.bgb_server + "/bgbilling/executer/ru.bitel.bgbilling.kernel.contract.status/ContractStatusMonitorService?wsdl"
         t = HttpAuthenticated(username=self.bgb_login, password=self.bgb_password)
         client = Client(url, transport=t)
@@ -379,7 +378,14 @@ class BGBContract(BGBilling):
         else:
             print('SetStatus:success')
 
-    def payment_set(self, summ, comment): #устанавливаем сумму платежа
+    def payment_set(self, summ, comment):
+        """Функция устанавливает сумму платежа
+
+            Входные параметры:
+                summ - сумма устанавливаемого платежа
+                comment - комментарий оператора
+            Результат работы функции - установка перерасчета для пользователя в BGBilling
+        """
         param_dict = {
             '_contractId': self.cid,
             '_date': datetime.datetime.now(),
@@ -400,12 +406,16 @@ class BGBContract(BGBilling):
         else:
             print('Counter_set:success')
 
-    def get_pay_id(self): # получаем размер абонентской платы
+    def get_pay_id(self):
+        """Функция получает id размера абонентской платы для текущего пользователя
+
+           Функция возвращает id абонентской платы для текущего пользователя
+        """
         url = self.bgb_server + "/bgbilling/executer/ru.bitel.bgbilling.kernel.contract.balance/PaymentService?wsdl"
         t = HttpAuthenticated(username=self.bgb_login, password=self.bgb_password)
         client = Client(url, transport=t)
         try:
-            res = client.service.paymentList(self.cid,'',1)
+            res = client.service.paymentList(self.cid, '', 1)
         except suds.WebFault as e:
             print('Error in SetStatus: %s' % (e.fault.detail.exception._cls))
             sys.exit(-1)
@@ -414,6 +424,10 @@ class BGBContract(BGBilling):
             return int(res[0][-1]["_id"])
 
     def payment_delete(self):
+        """ Функция удаляет последний платеж пользователя
+
+            Результат работы функции - удаление данных о последнем платеже текущего пользователя
+        """
         url = self.bgb_server + "/bgbilling/executer/ru.bitel.bgbilling.kernel.contract.balance/PaymentService?wsdl"
         t = HttpAuthenticated(username=self.bgb_login, password=self.bgb_password)
         client = Client(url, transport=t)
@@ -426,7 +440,12 @@ class BGBContract(BGBilling):
         else:
             print('Counter_delete:success')
 
-    def update_pay(self,tpid):
+    def update_pay(self, tpid):
+        """ Функция устанавливает размер тарифного плана для текущего пользователя
+            входные параметры:
+                tpid (Tariff Plan Id) - id тарифного плана текущего пользователя ()
+            Результат работы функции - установка значения в поле "Размер абонентской платы" в параметрах договора пользователя в системе BGBilling
+        """
         tarifs = {
             11: '180',
             18: '300',
@@ -452,14 +471,17 @@ class BGBContract(BGBilling):
             'cid': self.cid,
             'pid': 18
         }
-        value=str(tarifs.get(tpid))
+        value = str(tarifs.get(tpid))
         r = requests.post(self.bgb_server + "/bgbilling/executer?value=" +
                           urllib.parse.quote(value),
                           params=payload)
         root = ET.fromstring(str(r.text))
         print(root.attrib['status'])
 
-    def get_tpid(self): #получаем
+    def get_tpid(self):
+        """Функция получения tpid (id тарифного плана текущего пользователя)
+           Результат работы функции - запись id тарифного плана в переменную _tpid
+        """
         payload = {
             'user': self.bgb_login,  # логин
             'pswd': self.bgb_password,  # пароль
@@ -473,9 +495,10 @@ class BGBContract(BGBilling):
         self.update_pay(_tpid)
         print(_tpid)
 
-
-
 class BGBRecalculator(BGBContract):
+    """ Класс перерасчета баланса в системе BGBilling
+        Данный класс наследуется от класса BGBContract
+    """
     def __init__(self, cid):
         project_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         self.contract = BGBContract(cid)
@@ -483,14 +506,22 @@ class BGBRecalculator(BGBContract):
         self.tarif = int(self.contract.get_str_param(18))
 
     def recalculation(self):
+        """ перерасчет балансного доовора """
         nowdate = datetime.datetime.now()
         day = nowdate.day - 1
         days_in_month = monthrange(nowdate.year, nowdate.month)[1]
         summ = (self.tarif * day) // days_in_month
-        contract.payment_set(nowdate, summ, "Перерасчет балансного договора")
+        contract.payment_set(summ, "Перерасчет балансного договора")
         print("recalculation: success")
 
-    def block(self,date_begin,date_end,comment):
+    def block(self, date_begin, date_end, comment):
+        """ Приостановка договора на указанный период времени
+            Входные параметры:
+                date_begin - дата начала приостановки договора
+                date_end - дата окончания приостановки договора
+                comment - комментарий оператора
+            Результат работы программы - установка статуса "приостановлен" в системе BGBilling на определенный период времени
+        """
         months = {1:'Января',
                   2:'Февраля',
                   3:'Марта',
@@ -503,47 +534,48 @@ class BGBRecalculator(BGBContract):
                   10:'Октября',
                   11:'Ноября',
                   12:'Декабря'}
-        days ={
-        0:'дней',
-        1:'день',
-        2:'дня',
-        3:'дня',
-        4:'дня',
-        5:'дней',
-        6:'дней',
-        7:'дней',
-        8:'дней',
-        9:'дней',
-        10:'дней',
-        11:'дней',
-        12:'дней',
-        13:'дней',
-        14:'дней',
-        15:'дней',
-        16:'дней',
-        17:'дней',
-        18:'дней',
-        19:'дней',
-        20:'дней',
-        21:'день',
-        22:'дня',
-        23:'дня',
-        24:'дня',
-        25:'дней',
-        26:'дней',
-        27:'дней',
-        28:'дней',
-        29:'дней',
-        30:'дней',
-        31:'день'}
-        first_month_days = monthrange(date_begin.month,date_begin.month)[1]-date_begin.day
+        days = {
+            0:'дней',
+            1:'день',
+            2:'дня',
+            3:'дня',
+            4:'дня',
+            5:'дней',
+            6:'дней',
+            7:'дней',
+            8:'дней',
+            9:'дней',
+            10:'дней',
+            11:'дней',
+            12:'дней',
+            13:'дней',
+            14:'дней',
+            15:'дней',
+            16:'дней',
+            17:'дней',
+            18:'дней',
+            19:'дней',
+            20:'дней',
+            21:'день',
+            22:'дня',
+            23:'дня',
+            24:'дня',
+            25:'дней',
+            26:'дней',
+            27:'дней',
+            28:'дней',
+            29:'дней',
+            30:'дней',
+            31:'день'
+            }
+        first_month_days = monthrange(date_begin.month, date_begin.month)[1]-date_begin.day
         last_month_days = date_end.day
         period = date_end - date_begin + datetime.timedelta(days=1)
         submonth = date_end.month-date_begin.month
         limit = monthrange(date_begin.year, date_begin.month)[1]
         print(limit)
         if date_begin.month == 12:
-            limit += monthrange(date_begin.year + 1, 1)[1] + monthrange(date_begin.year + 1 , 2)[1]
+            limit += monthrange(date_begin.year + 1, 1)[1] + monthrange(date_begin.year + 1, 2)[1]
             print(limit)
 
         elif date_begin.month == 11:
@@ -562,8 +594,8 @@ class BGBRecalculator(BGBContract):
         if date_begin.day == 1 and date_end.day == monthrange(date_end.year, date_end.month)[1]:
             print('-2-')
             comment = "Приостановка договора по заявлению пользователя от " + str(date_end.date())
-            self.contract.set_status(4,date_begin, date_end, comment) # ставить статус "приостановлен" и НИЧЕГО не начислять
-            return (comment + " выполнена")
+            self.contract.set_status(4, date_begin, date_end, comment) # ставить статус "приостановлен" и НИЧЕГО не начислять
+            return comment + " выполнена"
 
         else:
             if date_begin.month == date_end.month:
@@ -578,7 +610,7 @@ class BGBRecalculator(BGBContract):
                 print('-5-')
 
             elif date_end.day == monthrange(date_end.year, date_end.month)[1] and date_begin.month != date_end.month:
-                day_count =monthrange(date_begin.year, date_begin.month)[1] - date_begin.day+1
+                day_count = monthrange(date_begin.year, date_begin.month)[1] - date_begin.day+1
                 summ = self.tarif * day_count // monthrange(date_end.year, date_end.month)[1]
                 last_month_days = 0
                 print(day_count)
@@ -588,35 +620,37 @@ class BGBRecalculator(BGBContract):
                 print('-7-')
                 summ = (self.tarif * (monthrange(date_begin.year, date_begin.month)[1] - date_begin.day + 1)) // monthrange(date_begin.year, date_begin.month)[1]
                 summ += (self.tarif * date_end.day) // monthrange(date_end.year, date_end.month)[1]
-            _comment = 'За '+ str(first_month_days) + " " + days[first_month_days]+ " " + months[date_begin.month] + " + " + str(last_month_days) + " " + days[last_month_days] + " " + months[date_end.month] + ' ' + comment.lower()
+            _comment = 'За '+ str(first_month_days+1) + " " + days[first_month_days]+ " " + months[date_begin.month] + " + " + str(last_month_days) + " " + days[last_month_days] + " " + months[date_end.month] + ' ' + comment.lower()
             self.contract.payment_set(summ, _comment)
-            self.contract.set_status(4,date_begin, date_end, comment)
+            self.contract.set_status(4, date_begin, date_end, comment)
             comment = str(date_end.date())
-            return(str(summ) + " рублей начислено по заявлению пользователя от " + comment)
+            return str(summ) + " рублей начислено по заявлению пользователя от " + comment
 
 
         # устанавливаем статус "приостановлен"  и начисляем sum
 
 def sbt(title):
+    """Поиск договора по title (номер договора)
+            Входные параметры:
+                title - номер договора в системе BGBilling
+            Функция возвращает ФИО пользователя по номеру договора
+    """
     config = configparser.ConfigParser()
     project_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     config_file = project_dir + '/etc/bgbilling_apps.conf'
     config.read(config_file)
-    bgb_server = 'http://' + config.get('bgbilling', 'BGBILLING_HOST') + ':' + config.get('bgbilling',
-                                                                                               'BGBILLING_PORT')
+    bgb_server = 'http://' + config.get('bgbilling', 'BGBILLING_HOST') + ':' + config.get('bgbilling', 'BGBILLING_PORT')
     param = {"method": "contractList",
              "user": {"user": "icticket", "pswd": "ic05102015"},
-             "params": {
-                        "title": title,
+             "params": {"title": title,
                         "fc": -1,
                         "groupMask": 0,
                         "subContracts": False,
                         "closed": True,
                         "hidden": False,
                         "page": {"pageIndex": 0, "pageSize": 0},
-
-                        }
-             }
+                       }
+            }
     url = bgb_server + '/bgbilling/executer/json/ru.bitel.bgbilling.kernel.contract.api/ContractService'
     r = requests.post(url, json=param)
     resp = r.json()
@@ -627,13 +661,14 @@ if __name__ == '__main__':
     cid = 10904
     contract = BGBContract(cid)
     recalculator = BGBRecalculator(cid)
+    print(datetime.now().date())
     #contract.get_tpid()
     ##################contract.update_pay()
     #print(sbt('0016161')[1])
     #print(monthrange(2017, 2)[1])
-    recalculator.block(datetime.datetime(2016,1,1),datetime.datetime(2016,2,28),'11')
+    #recalculator.block(datetime.datetime(2016, 1, 1),datetime.datetime(2016, 2, 28), '11')
     ##################recalculator.recalculation()
     ##################contract.get_pay_id()
     ##################contract.payment_delete()
-    #recalculator.set_status(4, datetime.datetime(2016,11,26),datetime.datetime(2016,11,28),'привет')
+    #recalculator.set_status(4, datetime.datetime(2016,11,26),datetime.datetime(2016, 11, 28), 'привет')
     #contract.payment_set(datetime.datetime.now(), 3333, "дратути!")
