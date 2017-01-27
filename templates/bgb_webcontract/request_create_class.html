@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Create Request</title>
+
+</head>
+
+<body>
+    <form action="{% url 'bgb_webcontract:request_create_class' %}" method="post">
+    {% csrf_token %}
+    {{ request_form }}
+
+    <div class="table">
+        <table>
+            {{contract_formset}}
+        </table>
+    </div>
+    <button type="submit">OK</button>
+    </form>
+
+
+
+</body>
+</html>

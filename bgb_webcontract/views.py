@@ -2,6 +2,8 @@
 from django.core.urlresolvers import reverse
 from django.forms import inlineformset_factory
 from django.forms import modelformset_factory, modelform_factory
+from django.views.generic.edit import UpdateView
+from django.views.generic import TemplateView, View
 from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import render, get_object_or_404
 from django.core.mail import send_mail, EmailMessage
@@ -10,6 +12,7 @@ import sys
 import os
 
 from . import models
+from .forms import ContractFormset, ContractModelForm
 from lib.bgb_api import BGBContract
 
 # Зададим параметры логгирования
@@ -284,3 +287,65 @@ def statistics_view(request):
               'errors': errors,
               'total_contracts': total_contracts}
     return render(request, 'bgb_webcontract/backend_statistics.html', kwargs)
+
+
+class SaveContractsMix:
+    def create_login_passwd(self, contracts, request_model):
+        # Синхронизируем локальную базу с данными в БГБиллинге
+        models.Contract.sync_contracts_from_bgb(request_model.department_id_id)
+        res = []
+        for contract in contracts:
+            l = contract.create_login()
+            p = contract.create_password()
+            res.append((l, p))
+        return res
+
+    def save_formset_with_addit_attr(self, request_model, contract_formset, commit=True):
+        # модель Contract имеет 2 внешних ключа,
+        # но они не заполняются пользователями в форме,
+        # поэтому мы должны задать значения этим полям программно,
+        # через переопределенный метод save класса modelformset
+        additional_contract_attr = {}
+        additional_contract_attr['department_id'] = request_model.department_id_id
+        additional_contract_attr['request_id'] = request_model.id
+        contracts = contract_formset.save(commit=commit, **additional_contract_attr)
+        return contracts
+
+
+class RequestCreate(SaveContractsMix, View):
+    RequestForm = modelform_factory(models.Request, fields=('it_manager_fullname',
+                                                            'it_manager_position',
+                                                            'it_manager_email',
+                                                            'department_id'))
+
+    def post(self, http_req, *args, **kwargs):
+        request_form = self.RequestForm(http_req.POST)
+        contract_formset = ContractFormset(http_req.POST)
+        if contract_formset.is_valid and request_form.is_valid():
+            it_manager_request = request_form.save()
+            # Сохраняем договора в БД с дополнительными
+            # аттрибутами (которые зависят от других форм)
+            contracts = self.save_formset_with_addit_attr(it_manager_request, contract_formset)
+            # Генерируем логины и пароли (SaveContractsMix)
+            self.create_login_passwd(contracts, it_manager_request)
+            return HttpResponseRedirect(reverse('bgb_webcontract:request_create_success'))
+        return render(http_req, 'bgb_webcontract/request_create_class.html',
+                      {'request_form': request_form, 'contract_formset': contract_formset})
+
+    def get(self, http_req, *args, **kwargs):
+        models.Department().synchronize_with_bgb()
+        contract_formset = ContractFormset(queryset=models.Contract.objects.none())
+        request_form = self.RequestForm()
+        return render(http_req, 'bgb_webcontract/request_create_class.html',
+                      {'request_form': request_form, 'contract_formset': contract_formset})
+
+
+def request_create_success(request):
+    kwargs = {}
+    kwargs['ok_message'] = 'Спасибо за использование нашей системы. '\
+                        'Введенные данные в ближайшее время '\
+                        'будут проверены администратором, '\
+                        'после чего на указанный e-mail '\
+                        'будет отправлен список логинов и паролей'
+    return render(request, 'bgb_webcontract/request_create_success.html', kwargs)
+

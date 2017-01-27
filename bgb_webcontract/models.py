@@ -195,7 +195,7 @@ class Contract(models.Model):
             self.save()
             return self.login
         else:
-            raise Exception("Can't create login, contract should be saved in DB")
+            raise Exception("Can't create login for contract {}, contract should be saved in DB".format(self.full_name))
 
     def create_password(self):
         if not self.password:
