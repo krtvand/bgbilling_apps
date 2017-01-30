@@ -1,13 +1,13 @@
 from django import forms
-from django.forms import ModelForm, BaseModelFormSet
+from django.forms import ModelForm, BaseModelFormSet, BaseInlineFormSet
 from django.forms import inlineformset_factory
 from django.forms import modelformset_factory, modelform_factory
 from .models import Request, Department, Contract
 
-# class RequestForm(ModelForm):
-#     class Meta:
-#         model = Request
-#         fields = ['it_manager_fullname', 'it_manager_position', 'it_manager_email', 'department_id']
+class RequestForm(ModelForm):
+    class Meta:
+        model = Request
+        fields = ['it_manager_fullname', 'it_manager_position', 'it_manager_email', 'department_id']
 
 
 class ContractModelForm(ModelForm):
@@ -17,23 +17,17 @@ class ContractModelForm(ModelForm):
         fields = ['full_name', 'position']
 
 
-class ContractBaseFormset(BaseModelFormSet):
-    def save(self, commit=True, *args, **kwargs):
+class ContractBaseInlineFormset(BaseInlineFormSet):
+    def save(self, commit=True):
         contracts = super().save(commit=False)
         for contract in contracts:
-            if 'department_id' in kwargs and 'request_id' in kwargs:
-                contract.department_id_id = kwargs['department_id']
-                contract.request_id_id = kwargs['request_id']
-                if commit:
-                    contract.save()
-            # Если мы сначала передали аргументы, но не сохранили,
-            # возможен вызов метода save без дополнительных параметров
-            elif contract.department_id_id and contract.request_id_id:
+            if contract.request_id:
+                contract.department_id_id = contract.request_id.department_id_id
                 if commit:
                     contract.save()
             else:
-                raise Exception('Can not save contract {}. Contract object require '
-                                'additional attributes, but not present'.format(contract.full_name))
+                raise Exception('Can not save contract {}. Contract object doesnt have request id. '
+                                'May be related request object doesnt saved yet'.format(contract.full_name))
         return contracts
 
-ContractFormset = modelformset_factory(Contract, form=ContractModelForm, formset=ContractBaseFormset)
+ContractFormset = inlineformset_factory(Request, Contract, ContractModelForm, ContractBaseInlineFormset)
