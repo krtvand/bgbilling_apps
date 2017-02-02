@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
-from django.core.urlresolvers import reverse
+from django.core.urlresolvers import reverse, reverse_lazy
 from django.forms import inlineformset_factory
 from django.forms import modelformset_factory, modelform_factory
 from django.views.generic.edit import UpdateView
-from django.views.generic import TemplateView, View
+from django.views.generic import TemplateView, View, UpdateView, CreateView
 from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import render, get_object_or_404
 from django.core.mail import send_mail, EmailMessage
@@ -27,6 +27,132 @@ logger.addHandler(console_handler)
 
 def index_view(request):
     return HttpResponseRedirect(reverse('bgb_webcontract:request_create'))
+
+
+class SaveContractsMixin:
+    def create_login_passwd(self, contracts, request_model):
+        # Синхронизируем локальную базу с данными в БГБиллинге
+        models.Contract.sync_contracts_from_bgb(request_model.department_id_id)
+        res = []
+        for contract in contracts:
+            l = contract.create_login()
+            p = contract.create_password()
+            res.append((l, p))
+        return res
+
+
+class RequestCreateExample(SaveContractsMixin, View):
+    """Создание заявки на создание договоров
+
+    Используется 2 формы: модельная форма заявки и
+    inlineformset для получения информации о ФИО и должностях.
+    При сохранении договоров происходит генерация логинов и паролей
+    с помощью метеда из mixin класса SaveContractsMixin
+    """
+
+    def post(self, http_req):
+        request_form = RequestForm(http_req.POST)
+        if request_form.is_valid():
+            created_request = request_form.save(commit=False)
+            contract_formset = ContractFormset(http_req.POST, instance=created_request)
+            if contract_formset.is_valid():
+                created_request.save()
+                contracts = contract_formset.save()
+                self.create_login_passwd(contracts, created_request)
+                return HttpResponseRedirect(reverse('bgb_webcontract:request_create_success'))
+        contract_formset = ContractFormset(http_req.POST)
+        kwargs = {}
+        kwargs['request_form'] = request_form
+        kwargs['contract_formset'] = contract_formset
+        return render(http_req, 'bgb_webcontract/request_create.html', kwargs)
+
+    def get(self, http_req):
+        models.Department().synchronize_with_bgb()
+        request = models.Request()
+        request_form = RequestForm(instance=request)
+        contract_formset = ContractFormset()
+        return render(http_req, 'bgb_webcontract/request_create.html',
+                      {'request_form': request_form, 'contract_formset': contract_formset})
+
+
+class RequestCreate(SaveContractsMixin, CreateView):
+    """Создание заявки на создание договоров. Реализация на основе Generic CBV
+
+    Используется 2 формы: модельная форма заявки и
+    inlineformset для получения информации о ФИО и должностях.
+    При сохранении договоров происходит генерация логинов и паролей
+    с помощью метеда из mixin класса SaveContractsMixin
+    """
+    form_class = RequestForm
+    success_url = reverse_lazy('bgb_webcontract:request_create_success')
+    template_name = 'bgb_webcontract/request_create.html'
+
+    def get(self, request, *args, **kwargs):
+        # для внутренного машинария
+        self.object = None
+        # Синхронизируем список подразделений с Биллингом
+        models.Department().synchronize_with_bgb()
+        contract_formset = ContractFormset()
+        # Форму, которая строится на базе self.formclass
+        # можно не передавать в контекст, по умолчанию
+        # она будет доступна в шаблоне по имени "form",
+        # но для дружелюбного контекста можно переопределять ее имя
+        # request_form = self.get_form(self.form_class)
+        # self.render_to_response(self.get_context_data(contract_formset=contract_formset,
+        #                                               request_form=request_form))
+        # p.s. self.context_object_name не работает
+        return self.render_to_response(self.get_context_data(contract_formset=contract_formset))
+
+    def form_valid(self, form):
+        self.object = form.save(commit=False)
+        contract_formset = ContractFormset(self.request.POST, instance=self.object)
+        if contract_formset.is_valid():
+            self.object.save()
+            contracts = contract_formset.save()
+            self.create_login_passwd(contracts, self.object)
+            return HttpResponseRedirect(self.get_success_url())
+
+    def form_invalid(self, form):
+        contract_formset = ContractFormset(self.request.POST)
+        return self.render_to_response(self.get_context_data(contract_formset=contract_formset))
+
+    # Эту часть CreateView делает сам, хотя в исходниках я так и не нашел как именно
+    # def get_context_data(self, **kwargs):
+    #     context = super().get_context_data(**kwargs)
+    #     if 'contract_formset' in kwargs:
+    #         context['contract_formset'] = kwargs['contract_formset']
+    #     return context
+
+
+def request_update_redirect(http_req, pk):
+    return HttpResponseRedirect(reverse('bgb_webcontract:request_update', kwargs={'pk': pk}))
+
+
+class RequestUpdate(SaveContractsMixin, UpdateView):
+    model = models.Request
+    fields = ['it_manager_fullname', 'it_manager_position',
+              'it_manager_email', 'department_id']
+    success_url = reverse_lazy('bgb_webcontract:request_create_success')
+    template_name = 'bgb_webcontract/request_update.html'
+
+    def get(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        contract_formset = ContractFormset(instance=self.object)
+        return self.render_to_response(self.get_context_data(contract_formset=contract_formset))
+
+    def form_valid(self, form):
+        self.object = form.save(commit=False)
+        contract_formset = ContractFormset(self.request.POST, instance=self.object)
+        if contract_formset.is_valid():
+            self.object.save()
+            contracts = contract_formset.save()
+            self.create_login_passwd(contracts, self.object)
+            return super().form_valid(form)
+
+    def form_invalid(self, form):
+        contract_formset = ContractFormset(self.request.POST)
+        return self.render_to_response(self.get_context_data(contract_formset=contract_formset))
+
 
 def backend_view(request):
     new_request_list = models.Request.objects.filter(accepted=False).order_by('created_date')
@@ -60,7 +186,7 @@ def request_detail_view(request, request_id):
                            'request': req,
                            'action_info': action_info})
     else:
-        request_form = RequestForm(instance=req)
+        request_form = RequestForm()
         contract_formset = ContractInlineFormset(instance=req)
     return render(request, 'bgb_webcontract/request_detail.html',
                   {'contract_formset': contract_formset,
@@ -250,53 +376,6 @@ def statistics_view(request):
     return render(request, 'bgb_webcontract/backend_statistics.html', kwargs)
 
 
-class SaveContractsMixin:
-    def create_login_passwd(self, contracts, request_model):
-        # Синхронизируем локальную базу с данными в БГБиллинге
-        models.Contract.sync_contracts_from_bgb(request_model.department_id_id)
-        res = []
-        for contract in contracts:
-            l = contract.create_login()
-            p = contract.create_password()
-            res.append((l, p))
-        return res
-
-
-class RequestCreate(SaveContractsMixin, View):
-    """Создание заявки на создание договоров
-
-    Используется 2 формы: модельная форма заявки и
-    inlineformset для получения информации о ФИО и должностях.
-    При сохранении договоров происходит генерация логинов и паролей
-    с помощью метеда из mixin класса SaveContractsMixin
-    """
-    def post(self, http_req):
-        request_form = RequestForm(http_req.POST)
-        if request_form.is_valid():
-            created_request = request_form.save(commit=False)
-            contract_formset = ContractFormset(http_req.POST, instance=created_request)
-            if contract_formset.is_valid():
-                created_request.save()
-                contracts = contract_formset.save()
-                self.create_login_passwd(contracts, created_request)
-                return HttpResponseRedirect(reverse('bgb_webcontract:request_create_success'))
-        contract_formset = ContractFormset(http_req.POST)
-        kwargs = {}
-        kwargs['request_form'] = request_form
-        kwargs['contract_formset'] = contract_formset
-        return render(http_req, 'bgb_webcontract/request_create.html', kwargs)
-
-    def get(self, http_req):
-        models.Department().synchronize_with_bgb()
-        request = models.Request()
-        request_form = RequestForm(instance=request)
-        contract_formset = ContractFormset()
-        return render(http_req, 'bgb_webcontract/request_create.html',
-                      {'request_form': request_form, 'contract_formset': contract_formset})
-
-
 def request_create_success(request):
     kwargs = {}
     return render(request, 'bgb_webcontract/request_create_success.html', kwargs)
-
-

@@ -29,20 +29,20 @@
     {% csrf_token %}
     <div class="rf alert alert-success">
         <table>
-        {{request_form.managment_form}}
-        {% for form in request_form %}
+        {{form.managment_form}}
+        {% for row in form %}
             <tr>
                 <td>
-                    {{ form.label }}</div>
+                    {{ row.label }}</div>
                 </td>
                 <td>
-                    {{ form }}
+                    {{ row }}
                 </td>
             </tr>
         {% endfor %}
         </table>
     </div>
-   <!-- <div class="rf alert alert-success">{{ request_form }}</div> -->
+   <!-- <div class="rf alert alert-success">{{ form }}</div> -->
     {{ department_form }}
 
     <div class="table" style="margin-left: 10px; ">
@@ -62,9 +62,9 @@
 
     <script type="text/javascript" language="JavaScript" >
         $('#add_more').click(function() {
-            var total = $('#id_form-TOTAL_FORMS').val();
+            var total = $('#id_contract_set-TOTAL_FORMS').val();
             var index = total * 2 - 1;
-            cloneMore('table.test tr:eq(' + index + ')', 'form',total);
+            cloneMore('table.test tr:eq(' + index + ')', 'contract_set',total);
 
         });
         function cloneMore(selector, type,total) {

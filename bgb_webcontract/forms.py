@@ -30,4 +30,4 @@ class ContractBaseInlineFormset(BaseInlineFormSet):
                                 'May be related request object doesnt saved yet'.format(contract.full_name))
         return contracts
 
-ContractFormset = inlineformset_factory(Request, Contract, ContractModelForm, ContractBaseInlineFormset)
+ContractFormset = inlineformset_factory(Request, Contract, ContractModelForm, ContractBaseInlineFormset, extra=1)
