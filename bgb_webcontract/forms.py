@@ -4,17 +4,17 @@ from django.forms import inlineformset_factory
 from django.forms import modelformset_factory, modelform_factory
 from .models import Request, Department, Contract
 
-class RequestForm(ModelForm):
-    class Meta:
-        model = Request
-        fields = ['it_manager_fullname', 'it_manager_position', 'it_manager_email', 'department_id']
+# class RequestForm(ModelForm):
+#     class Meta:
+#         model = Request
+#         fields = ['it_manager_fullname', 'it_manager_position', 'it_manager_email', 'department_id']
 
-
-class ContractModelForm(ModelForm):
-
-    class Meta:
-        model = Contract
-        fields = ['full_name', 'position']
+#
+# class ContractModelForm(ModelForm):
+#
+#     class Meta:
+#         model = Contract
+#         fields = ['full_name', 'position']
 
 
 class ContractBaseInlineFormset(BaseInlineFormSet):
@@ -30,4 +30,4 @@ class ContractBaseInlineFormset(BaseInlineFormSet):
                                 'May be related request object doesnt saved yet'.format(contract.full_name))
         return contracts
 
-ContractFormset = inlineformset_factory(Request, Contract, ContractModelForm, ContractBaseInlineFormset, extra=1)
+#ContractFormset = inlineformset_factory(Request, Contract, ContractModelForm, ContractBaseInlineFormset, extra=1)

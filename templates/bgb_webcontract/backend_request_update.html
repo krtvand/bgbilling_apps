@@ -2,9 +2,9 @@
 
 {% block title %}Request detail backend{% endblock %}
 {% block content %}
-    <form action="{% url 'bgb_webcontract:request_detail_backend' request.id %}" method="post">
+    <form action="{% url 'bgb_webcontract:backend_request_update' request.id %}" method="post">
         {% csrf_token %}
-        <div class="rf alert alert-success"> {{ request_form }} </div>
+        <div class="rf alert alert-success"> {{ form }} </div>
         {{ department_form }}
         <div class="table table-bordered ">
         <table class="test">
