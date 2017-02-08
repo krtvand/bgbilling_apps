@@ -5,62 +5,54 @@
     <title>Create Request</title>
     <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.5/jquery.min.js"></script>
     <!-- Latest compiled and minified CSS -->
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css"
+          integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
 
     <!-- Optional theme -->
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap-theme.min.css" integrity="sha384-rHyoN1iRsVXV4nD0JutlnGaslCJuC7uwjduW9SVrLvRYooPp2bWYgmgJQIXwl/Sp" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap-theme.min.css"
+          integrity="sha384-rHyoN1iRsVXV4nD0JutlnGaslCJuC7uwjduW9SVrLvRYooPp2bWYgmgJQIXwl/Sp" crossorigin="anonymous">
 
 </head>
 
-    <style type="text/css">
-        #id_it_manager_fullname, #id_it_manager_position, #id_it_manager_email, #id_department_id {
-            width: 300px;
-            margin-bottom: 10px;
-            margin-left: 10px;
-        }
-
-    </style>
 <body>
-{% csrf_token %}
+<div class="container">
+    <h1>Запрос на доступ в интернет</h1>
+    <form action="{% url 'bgb_webcontract:request_create' %}" method="post" role="form" class="form-horizontal">
+        {% csrf_token %}
+        {% load widget_tweaks %}
 
+        <div class="rf alert alert-success">
+            {{form.managment_form}}
+            {% for row in form %}
+            <div class="form-group">
+                <label for="{{ row.name }}" class="col-sm-4 control-label">{{ row.label }}</label>
+                <div class="col-sm-8">
+                    {% render_field row class+="form-control" %}
+                </div>
+            </div>
 
+            {% endfor %}
+        </div>
+        <!-- <div class="rf alert alert-success">{{ form }}</div> -->
+        {{ department_form }}
 
-    <form action="{% url 'bgb_webcontract:request_create' %}" method="post">
-    {% csrf_token %}
-    <div class="rf alert alert-success">
-        <table>
-        {{form.managment_form}}
-        {% for row in form %}
-            <tr>
-                <td>
-                    {{ row.label }}</div>
-                </td>
-                <td>
-                    {{ row }}
-                </td>
-            </tr>
-        {% endfor %}
-        </table>
-    </div>
-   <!-- <div class="rf alert alert-success">{{ form }}</div> -->
-    {{ department_form }}
+        <div class="table" style="margin-left: 10px; ">
+            <table class="test">
+                {{contract_formset}}
+            </table>
+        </div>
 
-    <div class="table" style="margin-left: 10px; ">
-        <table class="test">
-            {{contract_formset}}
-        </table>
-    </div>
-
-    <button type="button" value="Add More" id="add_more" class="btn btn-warning" style="margin-left: 10px;">Добавить</button>
-    <button type="submit" class="btn btn-success">OK</button>
+        <button type="button" value="Add More" id="add_more" class="btn btn-warning" style="margin-left: 10px;">Добавить
+        </button>
+        <button type="submit" class="btn btn-success">OK</button>
     </form>
-   <div id="empty_form" style="display:none; ">
+    <div id="empty_form" style="display:none; ">
         <table class='no_error'>
             {{ serviceFormset.empty_form.as_table }}
         </table>
     </div>
-
-    <script type="text/javascript" language="JavaScript" >
+</div>
+<script type="text/javascript" language="JavaScript">
         $('#add_more').click(function() {
             var total = $('#id_contract_set-TOTAL_FORMS').val();
             var index = total * 2 - 1;
@@ -91,7 +83,12 @@
                 $(this).attr('for', newFor);
             });
         }
-    </script>
+
+
+
+
+
+</script>
 
 </body>
 </html>
