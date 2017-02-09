@@ -46,12 +46,14 @@
                 <label class="col-sm-6">Должность</label>
             </div>
             <div class="dynamic-form">
-                <div class="form-group">
-                    {% for row in contract_formset.form %}
-                    <div class="col-sm-6">
-                        {% render_field row class+="form-control dynamic-control" %}
+                <div class="etalon">
+                    <div class="form-group">
+                        {% for row in contract_formset.form %}
+                        <div class="col-sm-6">
+                            {% render_field row class+="form-control dynamic-control" %}
+                        </div>
+                        {% endfor %}
                     </div>
-                    {% endfor %}
                 </div>
             </div>
             <button type="button" value="Add More" id="add_more" class="btn btn-default pull-right" disabled="disabled">
@@ -67,6 +69,7 @@
     </div>
 </div>
 <script type="text/javascript">
+var rows = 1;
 function changeButtonState(){
     var oldState = $('#add_more').attr('disabled');
     var newState = false;
@@ -79,6 +82,7 @@ function changeButtonState(){
         $('#add_more').attr('disabled', newState);
     }
 }
+
 function setStateMonitoring(){
     $('.dynamic-control').change(function(){
         changeButtonState();
@@ -86,8 +90,19 @@ function setStateMonitoring(){
             changeButtonState();
     });
 }
+
 $(document).ready(function(){
     setStateMonitoring();
+    $('#add_more').click(function() {
+        var set = $('.dynamic-form .etalon .form-group').clone().appendTo($('.dynamic-form'));
+        var cols = set.find('input');
+        rows++;
+        $(cols[1]).val('');
+        $(cols[0]).val('').focus();
+        changeButtonState();
+        setStateMonitoring()
+    });
+
     $('#form').submit(function(){
         data['csrfmiddlewaretoken'] = $('#csrfmiddlewaretoken').val();
         $.ajax({
@@ -101,40 +116,6 @@ $(document).ready(function(){
         return false;
     });
 });
-        $('#add_more').click(function() {
-            var total = $('#id_contract_set-TOTAL_FORMS').val();
-            var index = total * 2 - 1;
-            cloneMore('table.test tr:eq(' + index + ')', 'contract_set',total);
-
-        });
-        function cloneMore(selector, type,total) {
-            var newElement = $(selector).clone(true);
-            var newElementPrev = $(selector).prev().clone(true);
-
-            Insertion(newElementPrev,total)
-            $(selector).after(newElementPrev);
-
-            Insertion(newElement, total)
-            $(newElementPrev).after(newElement);
-            total++;
-            $('#id_' + type + '-TOTAL_FORMS').val(total);
-        }
-
-        function Insertion(selector, total){
-            selector.find(':input').each(function(){
-                var name = $(this).attr('name').replace('-' + (total-1) + '-','-' + total + '-');
-                var id = 'id_' + name;
-                $(this).attr({'name': name, 'id': id}).val('').removeAttr('checked');
-            });
-            selector.find('label').each(function(){
-                var newFor = $(this).attr('for').replace('-' + (total-1) + '-','-' + total + '-');
-                $(this).attr('for', newFor);
-            });
-        }
-
-
-
-
 </script>
 
 </body>
