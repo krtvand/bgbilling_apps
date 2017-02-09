@@ -2,7 +2,8 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Create Request</title>
+    <title>Запрос на доступ в интернет</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.5/jquery.min.js"></script>
     <!-- Latest compiled and minified CSS -->
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css"
@@ -17,7 +18,9 @@
 <body>
 <div class="container">
     <h1>Запрос на доступ в интернет</h1>
-    <form action="{% url 'bgb_webcontract:request_create' %}" method="post" role="form" class="form-horizontal">
+    <h3>Данные заявителя</h3>
+    <form id="form" action="{% url 'bgb_webcontract:request_create' %}" method="post" role="form"
+          class="form-horizontal">
         {% csrf_token %}
         {% load widget_tweaks %}
 
@@ -34,17 +37,28 @@
             {% endfor %}
         </div>
         <!-- <div class="rf alert alert-success">{{ form }}</div> -->
+        <h3>Список претендентов</h3>
+
         {{ department_form }}
-
-        <div class="table" style="margin-left: 10px; ">
-            <table class="test">
-                {{contract_formset}}
-            </table>
+        <div class="alert alert-info clearfix">
+            <div class="form-group">
+                <label class="col-sm-6">ФИО без сокращений</label>
+                <label class="col-sm-6">Должность</label>
+            </div>
+            <div class="dynamic-form">
+                <div class="form-group">
+                    {% for row in contract_formset.form %}
+                    <div class="col-sm-6">
+                        {% render_field row class+="form-control dynamic-control" %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            <button type="button" value="Add More" id="add_more" class="btn btn-default pull-right" disabled="disabled">
+                Добавить строку
+            </button>
         </div>
-
-        <button type="button" value="Add More" id="add_more" class="btn btn-warning" style="margin-left: 10px;">Добавить
-        </button>
-        <button type="submit" class="btn btn-success">OK</button>
+        <button type="submit" class="btn btn-default">Сохранить и отправить</button>
     </form>
     <div id="empty_form" style="display:none; ">
         <table class='no_error'>
@@ -52,7 +66,41 @@
         </table>
     </div>
 </div>
-<script type="text/javascript" language="JavaScript">
+<script type="text/javascript">
+function changeButtonState(){
+    var oldState = $('#add_more').attr('disabled');
+    var newState = false;
+    $('.dynamic-control').each(function(){
+        if ($(this).val() == '') {
+            newState = true;
+        }
+    });
+    if (newState != oldState){
+        $('#add_more').attr('disabled', newState);
+    }
+}
+function setStateMonitoring(){
+    $('.dynamic-control').change(function(){
+        changeButtonState();
+    }).keyup(function(){
+            changeButtonState();
+    });
+}
+$(document).ready(function(){
+    setStateMonitoring();
+    $('#form').submit(function(){
+        data['csrfmiddlewaretoken'] = $('#csrfmiddlewaretoken').val();
+        $.ajax({
+            url: '{% url 'bgb_webcontract:request_create' %}',
+            type: 'POST',
+            data: data,
+            success: function(data){
+                console.log(data);
+            }
+        });
+        return false;
+    });
+});
         $('#add_more').click(function() {
             var total = $('#id_contract_set-TOTAL_FORMS').val();
             var index = total * 2 - 1;
@@ -83,7 +131,6 @@
                 $(this).attr('for', newFor);
             });
         }
-
 
 
 
