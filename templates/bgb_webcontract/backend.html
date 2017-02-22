@@ -25,7 +25,7 @@
                 <tbody>
                     {% if new_request_list %}
                         {% for request in new_request_list %}
-                            <tr data-href="{% url 'bgb_webcontract:request_detail_backend' request.id %}" style="cursor: pointer;">
+                            <tr data-href="{% url 'bgb_webcontract:backend_request_update' request.id %}" style="cursor: pointer;">
                                 <td>{{ request.department_id}}</td>
                                 <td>{{ request.it_manager_fullname}}</td>
                                 <td>{{ request.it_manager_position}}</td>
@@ -49,7 +49,7 @@
                     <tbody>
                           {% if latest_request_list %}
                           {% for request in latest_request_list %}
-                            <tr data-href="{% url 'bgb_webcontract:request_detail_backend' request.id %}" style="cursor: pointer">
+                            <tr data-href="{% url 'bgb_webcontract:backend_request_update' request.id %}" style="cursor: pointer">
                                 <td>{{ request.department_id}}</td>
                                 <td>{{ request.it_manager_fullname}}</td>
                                 <td>{{ request.it_manager_position}}</td>
