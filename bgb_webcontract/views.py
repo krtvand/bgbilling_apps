@@ -60,6 +60,9 @@ class SaveContractsMixin:
         action_info = ''
         contracts = self.object.contract_set.all()
         for c in contracts:
+            # Если договор уже имеет id из биллинга, то пропускаем операцию
+            if c.bgb_cid:
+                continue
             bgb_contract = BGBContract()
             # Создаем договор в БГБиллинге
             bgb_cid = None
